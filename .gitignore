@@ -7,6 +7,8 @@ wp-config.php
 # Dependencies and build artefacts
 node_modules/
 vendor/
+composer.phar
+composer-setup.php
 *.log
 
 # Editor and operating-system files

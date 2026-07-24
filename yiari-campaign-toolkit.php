@@ -20,8 +20,14 @@ define( 'YKT_PLUGIN_FILE', __FILE__ );
 define( 'YKT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'YKT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
+$ykt_autoload = YKT_PLUGIN_DIR . 'vendor/autoload.php';
+if ( file_exists( $ykt_autoload ) ) {
+	require_once $ykt_autoload;
+}
+
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-order-status.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-checkout.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-certificate.php';
 
 register_activation_hook( __FILE__, array( 'YKT_Order_Status', 'activate' ) );
 
@@ -38,6 +44,16 @@ function ykt_bootstrap(): void {
 
 	( new YKT_Order_Status() )->init();
 	( new YKT_Checkout() )->init();
+	( new YKT_Certificate() )->init();
+
+	if ( ! class_exists( 'WC_Email' ) && defined( 'WC_ABSPATH' ) ) {
+		require_once WC_ABSPATH . 'includes/emails/class-wc-email.php';
+	}
+
+	if ( class_exists( 'WC_Email' ) ) {
+		require_once YKT_PLUGIN_DIR . 'includes/class-ykt-emails.php';
+		( new YKT_Emails() )->init();
+	}
 }
 
 /**

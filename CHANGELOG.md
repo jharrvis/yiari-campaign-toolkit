@@ -2,6 +2,16 @@
 
 ## 0.1.0 - 2026-07-24
 
+- Added Sprint 2 certificate generation for paid campaign orders using Dompdf.
+- Added local Composer dependency manifest for `dompdf/dompdf`; `vendor/` remains ignored and can be installed per environment with Composer.
+- Added certificate numbering with the `YIARI-KG-{YYYY}-{sequence}` format and guarded generation so each order keeps one certificate.
+- Added secure certificate storage under WordPress uploads with non-guessable filenames and order meta references.
+- Added a printable certificate template with donor name, package type, quantity, date, order number, and certificate number.
+- Added WooCommerce customer email classes for campaign `paid`, `shipped`, `delivered`, and `impact-sent` lifecycle events.
+- Added certificate PDF attachment support for the paid confirmation email.
+- Added reusable HTML and plain-text campaign email templates with placeholder campaign copy.
+- Kept Sprint 2 logic scoped to the campaign toolkit so KiriminAja, Midtrans, and WooCommerce core behavior remain untouched.
+
 - Removed internal agent/planning files from Git tracking and ignored them locally so GitHub contains only plugin runtime/source files.
 
 - Added the initial WordPress plugin bootstrap for YIARI Campaign Toolkit.
