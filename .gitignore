@@ -14,3 +14,9 @@ vendor/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local planning and agent instructions
+AGENTS.md
+PLAN.md
+SKILL.md
+skills/

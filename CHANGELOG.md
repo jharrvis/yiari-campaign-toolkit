@@ -2,6 +2,8 @@
 
 ## 0.1.0 - 2026-07-24
 
+- Removed internal agent/planning files from Git tracking and ignored them locally so GitHub contains only plugin runtime/source files.
+
 - Added the initial WordPress plugin bootstrap for YIARI Campaign Toolkit.
 - Added WooCommerce dependency handling with an admin notice when WooCommerce is inactive.
 - Added campaign order statuses and the `ykt_order_status_log` transition history table.
