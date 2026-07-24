@@ -1,6 +1,6 @@
 # SKILL: Checkout Differentiation (Paket A vs Paket B)
 
-**Status:** Not started
+**Status:** Implemented, pending sandbox QA
 **Sprint:** 1
 **Depends on:** WooCommerce products for Paket A and Paket B already created.
 

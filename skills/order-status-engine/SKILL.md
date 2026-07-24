@@ -1,6 +1,6 @@
 # SKILL: Custom Order Status Engine + Status Log
 
-**Status:** Not started
+**Status:** Implemented, pending sandbox QA
 **Sprint:** 1
 **Depends on:** none (foundational — most other modules hook off these statuses)
 
@@ -21,7 +21,7 @@ confusion in the prior campaign as a problem to avoid).
 | `wc-ready-to-ship` | Siap Dikirim | B only |
 | `wc-shipped` | Sedang Dikirim | B only |
 | `wc-delivered` | Diterima | B only |
-| `wc-impact-report-sent` | Laporan Dampak Terkirim | A + B (A can reach this directly after certificate-sent) |
+| `wc-impact-sent` | Laporan Dampak Terkirim | A + B (A can reach this directly after certificate-sent) |
 
 Note: WooCommerce status slugs must be ≤20 characters including the `wc-` prefix
 — all of the above fit.
@@ -43,7 +43,7 @@ Note: WooCommerce status slugs must be ≤20 characters including the `wc-` pref
 
    ```
    Midtrans settlement/capture → WooCommerce "processing" (Midtrans plugin's own behavior)
-                                → (this module) → "paid" → ... → "impact-report-sent"
+                                → (this module) → "paid" → ... → "impact-sent"
    Midtrans deny/expire/cancel → WooCommerce "failed"/"cancelled" (no further action)
    ```
 

@@ -22,7 +22,7 @@ pending-payment → paid → certificate-sent
                               │
                     (Paket A) │ (Paket B)
                               ▼
-                          ready-to-ship → shipped → delivered → impact-report-sent
+                          ready-to-ship → shipped → delivered → impact-sent
 ```
 
 ## Sprint plan
@@ -44,7 +44,7 @@ until its module(s)' "Definition of done" checklist (see `AGENTS.md` §6) passes
 | Sprint | Status | Notes |
 |---|---|---|
 | 0 | Not started | |
-| 1 | Not started | |
+| 1 | Implemented, pending sandbox QA | Plugin scaffold, checkout differentiation, order statuses, and status log are implemented. Manual sandbox QA remains. |
 | 2 | Not started | |
 | 3 | Not started | |
 | 4 | Not started | |

@@ -18,7 +18,7 @@ inherits the site's existing email styling/header/footer.
 | 1 | `paid` | Thank-you + package details + contribution amount + transaction code + shipping info (Paket B only) + note that a certificate/report will follow |
 | 2 | `shipped` | Courier name, AWB/resi number, tracking link |
 | 3 | `delivered` | Thank-you + social share invite + story template + hashtag |
-| 4 | `impact-report-sent` | Books printed count, distribution locations, beneficiary count, curated documentation |
+| 4 | `impact-sent` | Books printed count, distribution locations, beneficiary count, curated documentation |
 
 Exact copy for all 4 is an **open question** — see `PLAN.md` open questions list.
 Build with placeholder copy that's easy for a non-developer to edit later
@@ -35,7 +35,7 @@ without a developer).
    without touching code.
 2. Trigger each from the corresponding `woocommerce_order_status_changed`
    transition (`to === 'paid'`, `'shipped'`, `'delivered'`,
-   `'impact-report-sent'`), calling `$this->email->trigger( $order_id )` style,
+   `'impact-sent'`), calling `$this->email->trigger( $order_id )` style,
    consistent with how core WooCommerce emails are wired.
 3. Email #1 must attach the certificate PDF — read path from order meta
    `_certificate_path` (set by `certificate-generation` module); if it's not

@@ -35,11 +35,11 @@ faster than the fully-manual process used in the prior campaign.
   its own submenu page under WooCommerce): select segment(s) → compose/select
   an "Impact Update" content block (books printed count, distribution
   locations, beneficiary count, documentation) → send.
-- Reuses the email #4 (`impact-report-sent`) template/class from `email-engine`
+- Reuses the email #4 (`impact-sent`) template/class from `email-engine`
   — this module supplies the recipient list (by segment) and the dynamic
   content fields, not a new email system.
 - Sending should update each recipient order's status to
-  `wc-impact-report-sent` (so the status log and dashboard reflect it, and so
+  `wc-impact-sent` (so the status log and dashboard reflect it, and so
   the same donor doesn't get double-emailed by an accidental second broadcast
   — check current status before including an order in the send list).
 - No need for real-time/queued sending at this campaign's expected scale — a
@@ -55,7 +55,7 @@ faster than the fully-manual process used in the prior campaign.
 - [ ] Manually tagging an order as `mitra` persists and displays correctly
       alongside auto-computed segments.
 - [ ] Sending an impact update to a segment updates only those orders' status
-      to `wc-impact-report-sent`, and does not re-send to an order already at
+      to `wc-impact-sent`, and does not re-send to an order already at
       that status.
 - [ ] Segment filter in the broadcast UI matches the same underlying data the
       admin dashboard's Paket A/B filter uses (no drift between the two).
