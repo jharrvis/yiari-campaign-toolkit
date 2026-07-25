@@ -28,6 +28,14 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 	<p><?php echo esc_html( $message_line ); ?></p>
 <?php endforeach; ?>
 
+<?php if ( $order instanceof WC_Order && $order->get_meta( '_shipping_awb_number', true ) ) : ?>
+	<p>
+		<strong><?php esc_html_e( 'Shipping details', 'yiari-campaign-toolkit' ); ?></strong><br>
+		<?php esc_html_e( 'Courier:', 'yiari-campaign-toolkit' ); ?> <?php echo esc_html( (string) $order->get_meta( '_shipping_courier_name', true ) ?: '-' ); ?><br>
+		<?php esc_html_e( 'AWB:', 'yiari-campaign-toolkit' ); ?> <?php echo esc_html( (string) $order->get_meta( '_shipping_awb_number', true ) ); ?>
+	</p>
+<?php endif; ?>
+
 <?php if ( $order instanceof WC_Order ) : ?>
 	<p>
 		<?php

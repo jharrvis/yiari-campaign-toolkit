@@ -28,10 +28,28 @@ if ( file_exists( $ykt_autoload ) ) {
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-order-status.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-checkout.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-certificate.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-shipping-sync.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-progress-counter.php';
 
-register_activation_hook( __FILE__, array( 'YKT_Order_Status', 'activate' ) );
+register_activation_hook( __FILE__, 'ykt_activate' );
+register_deactivation_hook( __FILE__, 'ykt_deactivate' );
 
 add_action( 'plugins_loaded', 'ykt_bootstrap', 20 );
+
+/**
+ * Run plugin activation routines.
+ */
+function ykt_activate(): void {
+	YKT_Order_Status::activate();
+	YKT_Shipping_Sync::activate();
+}
+
+/**
+ * Run plugin deactivation routines.
+ */
+function ykt_deactivate(): void {
+	YKT_Shipping_Sync::deactivate();
+}
 
 /**
  * Bootstrap the campaign toolkit after dependency plugins have loaded.
@@ -45,6 +63,8 @@ function ykt_bootstrap(): void {
 	( new YKT_Order_Status() )->init();
 	( new YKT_Checkout() )->init();
 	( new YKT_Certificate() )->init();
+	( new YKT_Shipping_Sync() )->init();
+	( new YKT_Progress_Counter() )->init();
 
 	if ( ! class_exists( 'WC_Email' ) && defined( 'WC_ABSPATH' ) ) {
 		require_once WC_ABSPATH . 'includes/emails/class-wc-email.php';

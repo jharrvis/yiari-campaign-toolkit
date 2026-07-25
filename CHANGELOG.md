@@ -2,6 +2,15 @@
 
 ## 0.1.0 - 2026-07-24
 
+- Added Sprint 3 KiriminAja shipping synchronization using the installed plugin transaction table because no AWB/status-specific public hook is exposed.
+- Added 15-minute WP-Cron polling plus immediate sync on relevant order status changes for Paket B/mixed campaign orders.
+- Added lifecycle mapping from KiriminAja AWB/status data to campaign `ready-to-ship`, `shipped`, and `delivered` statuses.
+- Added HPOS-compatible order meta for `_shipping_awb_number`, `_shipping_courier_name`, `_kiriminaja_order_id`, and `_kiriminaja_status`.
+- Added a guard so KiriminAja setting WooCommerce `completed` after delivery does not move an in-shipping campaign order backward to campaign `paid`.
+- Added `[campaign_progress target="X"]` shortcode with cached books-funded and donor totals.
+- Added AJAX refresh for campaign progress so the counter can remain fresh when page cache is enabled.
+- Added courier/AWB display to campaign customer email templates when shipping data exists.
+
 - Added Sprint 2 certificate generation for paid campaign orders using Dompdf.
 - Added local Composer dependency manifest for `dompdf/dompdf`; `vendor/` remains ignored and can be installed per environment with Composer.
 - Added certificate numbering with the `YIARI-KG-{YYYY}-{sequence}` format and guarded generation so each order keeps one certificate.

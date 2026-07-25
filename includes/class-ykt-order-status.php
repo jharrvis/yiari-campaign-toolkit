@@ -180,8 +180,6 @@ class YKT_Order_Status {
 	 * @param WC_Order $order Order object.
 	 */
 	public function advance_paid_campaign_order( int $order_id, string $from, string $to, $order ): void {
-		unset( $from );
-
 		if ( ! $order instanceof WC_Order ) {
 			$order = wc_get_order( $order_id );
 		}
@@ -195,6 +193,10 @@ class YKT_Order_Status {
 		}
 
 		if ( ! in_array( $to, array( 'processing', 'completed' ), true ) ) {
+			return;
+		}
+
+		if ( in_array( $from, array( 'certificate-sent', 'ready-to-ship', 'shipped', 'delivered', 'impact-sent' ), true ) ) {
 			return;
 		}
 

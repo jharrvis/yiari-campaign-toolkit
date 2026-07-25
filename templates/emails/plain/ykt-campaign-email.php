@@ -11,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 echo esc_html( $email_heading ) . "\n\n";
 
+if ( $order instanceof WC_Order && $order->get_meta( '_shipping_awb_number', true ) ) {
+	echo esc_html__( 'Shipping details', 'yiari-campaign-toolkit' ) . "\n";
+	echo esc_html__( 'Courier:', 'yiari-campaign-toolkit' ) . " " . esc_html( (string) $order->get_meta( '_shipping_courier_name', true ) ?: '-' ) . "\n";
+	echo esc_html__( 'AWB:', 'yiari-campaign-toolkit' ) . " " . esc_html( (string) $order->get_meta( '_shipping_awb_number', true ) ) . "\n\n";
+}
+
 if ( $order instanceof WC_Order ) {
 	printf(
 		/* translators: %s: customer first name. */
