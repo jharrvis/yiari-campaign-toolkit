@@ -27,7 +27,7 @@ class YKT_Checkout {
 		add_action( 'woocommerce_admin_process_product_object', array( $this, 'save_product_package_field' ) );
 		add_filter( 'woocommerce_cart_needs_shipping', array( $this, 'maybe_disable_shipping_for_package_a' ), 20 );
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'enqueue_checkout_assets' ) );
-		add_filter( 'woocommerce_checkout_fields', array( $this, 'adjust_checkout_fields' ), 20 );
+		add_filter( 'woocommerce_checkout_fields', array( $this, 'adjust_checkout_fields' ), 99 );
 		add_action( 'woocommerce_after_order_notes', array( $this, 'render_campaign_fields' ) );
 		add_action( 'woocommerce_checkout_process', array( $this, 'validate_checkout' ) );
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'save_order_meta' ), 20, 2 );
@@ -150,18 +150,33 @@ class YKT_Checkout {
 	 */
 	public function adjust_checkout_fields( array $fields ): array {
 		$cart_type = $this->get_cart_package_type();
-		if ( 'A' !== $cart_type ) {
+		$address_fields = array( 'address_1', 'address_2', 'city', 'state', 'postcode', 'country' );
+
+		if ( 'A' === $cart_type ) {
+			foreach ( array( 'billing', 'shipping' ) as $group ) {
+				foreach ( $address_fields as $field ) {
+					$key = $group . '_' . $field;
+					if ( isset( $fields[ $group ][ $key ] ) ) {
+						$fields[ $group ][ $key ]['required'] = false;
+						$fields[ $group ][ $key ]['class'][]  = 'ykt-package-a-hidden-address';
+					}
+				}
+			}
+
 			return $fields;
 		}
 
-		$address_fields = array( 'address_1', 'address_2', 'city', 'state', 'postcode', 'country' );
-		foreach ( array( 'billing', 'shipping' ) as $group ) {
-			foreach ( $address_fields as $field ) {
-				$key = $group . '_' . $field;
-				if ( isset( $fields[ $group ][ $key ] ) ) {
-					$fields[ $group ][ $key ]['required'] = false;
-					$fields[ $group ][ $key ]['class'][]  = 'ykt-package-a-hidden-address';
+		if ( in_array( $cart_type, array( 'B', 'MIXED' ), true ) ) {
+			$required_billing_fields = array( 'first_name', 'phone', 'address_1', 'city', 'postcode', 'country' );
+			foreach ( $required_billing_fields as $field ) {
+				$key = 'billing_' . $field;
+				if ( isset( $fields['billing'][ $key ] ) ) {
+					$fields['billing'][ $key ]['required'] = true;
 				}
+			}
+
+			if ( isset( $fields['billing']['kiriof_destination_area'] ) ) {
+				$fields['billing']['kiriof_destination_area']['required'] = true;
 			}
 		}
 
@@ -208,13 +223,23 @@ class YKT_Checkout {
 			return;
 		}
 
+		$checkout_fields = WC()->checkout()->get_checkout_fields();
 		$required_fields = array(
 			'billing_first_name' => __( 'First name', 'yiari-campaign-toolkit' ),
 			'billing_phone'      => __( 'Phone', 'yiari-campaign-toolkit' ),
 			'billing_address_1'  => __( 'Address', 'yiari-campaign-toolkit' ),
-			'billing_city'       => __( 'City', 'yiari-campaign-toolkit' ),
-			'billing_postcode'   => __( 'Postcode', 'yiari-campaign-toolkit' ),
 		);
+
+		// KiriminAja replaces city/postcode with its district selector on Indonesian checkout.
+		foreach ( array( 'billing_city' => __( 'City', 'yiari-campaign-toolkit' ), 'billing_postcode' => __( 'Postcode', 'yiari-campaign-toolkit' ) ) as $key => $label ) {
+			if ( isset( $checkout_fields['billing'][ $key ] ) ) {
+				$required_fields[ $key ] = $label;
+			}
+		}
+
+		if ( isset( $checkout_fields['billing']['kiriof_destination_area'] ) ) {
+			$required_fields['kiriof_destination_area'] = __( 'District', 'yiari-campaign-toolkit' );
+		}
 
 		foreach ( $required_fields as $key => $label ) {
 			$value = isset( $_POST[ $key ] ) ? trim( sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) ) : '';

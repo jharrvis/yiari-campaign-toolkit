@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed Paket B checkout validation to follow the active KiriminAja district field instead of requiring WooCommerce city/postcode fields that are not present on the live checkout.
+- Fixed Paket B checkout field schema so billing address, city, postcode, country, and KiriminAja district fields are marked required when present.
 - Added Sprint 4 WooCommerce admin order extensions with campaign columns, Paket filtering, certificate/AWB search fields, internal notes, status history, resend-email bulk action, and campaign CSV export.
 - Added donor segmentation for Paket A/B, filterable big-donor total and quantity thresholds, manual Mitra tagging, and an admin impact update broadcast flow.
 - Updated Sprint 4 planning and module skill statuses to implemented pending sandbox QA.
