@@ -30,6 +30,8 @@ require_once YKT_PLUGIN_DIR . 'includes/class-ykt-checkout.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-certificate.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-shipping-sync.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-progress-counter.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-admin.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-segmentation.php';
 
 register_activation_hook( __FILE__, 'ykt_activate' );
 register_deactivation_hook( __FILE__, 'ykt_deactivate' );
@@ -65,6 +67,8 @@ function ykt_bootstrap(): void {
 	( new YKT_Certificate() )->init();
 	( new YKT_Shipping_Sync() )->init();
 	( new YKT_Progress_Counter() )->init();
+	( new YKT_Admin() )->init();
+	( new YKT_Segmentation() )->init();
 
 	if ( ! class_exists( 'WC_Email' ) && defined( 'WC_ABSPATH' ) ) {
 		require_once WC_ABSPATH . 'includes/emails/class-wc-email.php';

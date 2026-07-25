@@ -154,6 +154,9 @@ abstract class YKT_Email_Campaign_Base extends WC_Email {
 		if ( $order instanceof WC_Order ) {
 			$this->object    = $order;
 			$this->recipient = $order->get_billing_email();
+			if ( method_exists( $this, 'message_lines_for_order' ) ) {
+				$this->message_lines = $this->message_lines_for_order( $order );
+			}
 		}
 
 		if ( $this->is_enabled() && $this->get_recipient() ) {
@@ -300,6 +303,22 @@ class YKT_Email_Campaign_Delivered extends YKT_Email_Campaign_Base {
  * Impact report campaign email.
  */
 class YKT_Email_Campaign_Impact extends YKT_Email_Campaign_Base {
+	/**
+	 * Build impact email copy with optional broadcast content.
+	 *
+	 * @param WC_Order $order Order object.
+	 * @return array<int, string>
+	 */
+	protected function message_lines_for_order( WC_Order $order ): array {
+		$lines = $this->message_lines;
+		$message = trim( (string) $order->get_meta( '_impact_update_message', true ) );
+		if ( '' !== $message ) {
+			$lines[] = $message;
+		}
+
+		return $lines;
+	}
+
 	/**
 	 * Constructor.
 	 */

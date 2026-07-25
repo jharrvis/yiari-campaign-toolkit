@@ -1,6 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Added Sprint 4 WooCommerce admin order extensions with campaign columns, Paket filtering, certificate/AWB search fields, internal notes, status history, resend-email bulk action, and campaign CSV export.
+- Added donor segmentation for Paket A/B, filterable big-donor total and quantity thresholds, manual Mitra tagging, and an admin impact update broadcast flow.
+- Updated Sprint 4 planning and module skill statuses to implemented pending sandbox QA.
+
 ## 0.1.0 - 2026-07-24
+
+- Added Sprint 4 WooCommerce order admin columns for package, AWB/resi, certificate, impact status, and internal notes.
+- Added Paket A/B/MIXED order filters, campaign CSV export, and search support for certificate number, AWB, internal notes, and donor segment meta.
+- Added inline admin-only internal note saving plus an order edit screen field.
+- Added campaign status history display from the `ykt_order_status_log` table on order edit screens.
+- Added admin bulk action to resend the email that matches each selected order's current campaign status.
+- Added donor segmentation for Paket A, Paket B, filterable Donatur Besar threshold, and manual Mitra tagging.
+- Added WooCommerce submenu for segment-based impact update broadcast, updating matching orders to `impact-sent`.
+- Added dynamic impact broadcast message support in the impact email template flow.
 
 - Added Sprint 3 KiriminAja shipping synchronization using the installed plugin transaction table because no AWB/status-specific public hook is exposed.
 - Added 15-minute WP-Cron polling plus immediate sync on relevant order status changes for Paket B/mixed campaign orders.
