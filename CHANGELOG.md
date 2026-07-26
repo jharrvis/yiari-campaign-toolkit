@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Sprint 5a Oxygen-friendly campaign frontend shortcodes for the Karmila & Gito landing section, two package cards, and cart icon.
+- Added responsive public campaign frontend assets and AJAX cart count refresh for cached pages.
 - Fixed Paket B checkout validation to follow the active KiriminAja district field instead of requiring WooCommerce city/postcode fields that are not present on the live checkout.
 - Fixed Paket B checkout field schema so billing address, city, postcode, country, and KiriminAja district fields are marked required when present.
 - Added Sprint 4 WooCommerce admin order extensions with campaign columns, Paket filtering, certificate/AWB search fields, internal notes, status history, resend-email bulk action, and campaign CSV export.
