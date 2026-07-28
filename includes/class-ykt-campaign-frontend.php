@@ -23,9 +23,50 @@ class YKT_Campaign_Frontend {
 		add_shortcode( 'ykt_campaign_landing', array( $this, 'render_landing_shortcode' ) );
 		add_shortcode( 'ykt_campaign_products', array( $this, 'render_products_shortcode' ) );
 		add_shortcode( 'ykt_cart_icon', array( $this, 'render_cart_icon_shortcode' ) );
+		add_action( 'wp_loaded', array( $this, 'handle_campaign_add_to_cart' ), 15 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cart_assets' ) );
+		add_filter( 'wp_kses_allowed_html', array( $this, 'allow_cart_quantity_input_html' ), 10, 2 );
 		add_filter( 'woocommerce_add_to_cart_fragments', array( $this, 'cart_fragments' ) );
 		add_action( 'wp_ajax_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
 		add_action( 'wp_ajax_nopriv_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
+	}
+
+	/**
+	 * Add a campaign product with the selected quantity as the final cart quantity.
+	 */
+	public function handle_campaign_add_to_cart(): void {
+		if ( empty( $_GET['ykt_campaign_add_to_cart'] ) || ! function_exists( 'WC' ) ) {
+			return;
+		}
+
+		$product_id = absint( wp_unslash( $_GET['ykt_campaign_add_to_cart'] ) );
+		$quantity = isset( $_GET['quantity'] ) ? max( 1, absint( wp_unslash( $_GET['quantity'] ) ) ) : 1;
+		$product = wc_get_product( $product_id );
+
+		if ( ! $product instanceof WC_Product || ! YKT_Checkout::get_product_package_type( $product_id ) ) {
+			return;
+		}
+
+		if ( null === WC()->cart && function_exists( 'wc_load_cart' ) ) {
+			wc_load_cart();
+		}
+
+		if ( ! WC()->cart ) {
+			return;
+		}
+
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$cart_product_id = (int) ( $cart_item['variation_id'] ?: $cart_item['product_id'] );
+			if ( $cart_product_id === $product_id ) {
+				WC()->cart->remove_cart_item( $cart_item_key );
+			}
+		}
+
+		WC()->cart->add_to_cart( $product_id, $quantity );
+		WC()->cart->calculate_totals();
+
+		wp_safe_redirect( wc_get_checkout_url() );
+		exit;
 	}
 
 	/**
@@ -187,6 +228,53 @@ class YKT_Campaign_Frontend {
 	}
 
 	/**
+	 * Load campaign frontend assets on WooCommerce cart and checkout pages.
+	 */
+	public function enqueue_cart_assets(): void {
+		if ( function_exists( 'is_cart' ) && ( is_cart() || is_checkout() ) ) {
+			$this->enqueue_assets();
+		}
+	}
+
+	/**
+	 * Keep WooCommerce cart quantity fields editable when KiriminAja sanitizes the cart row.
+	 *
+	 * KiriminAja's cart template passes the WooCommerce quantity HTML through wp_kses_post().
+	 * WordPress' post allowlist strips form inputs by default, leaving an empty quantity column.
+	 * This keeps the allowance scoped to WooCommerce cart/checkout rendering and only permits
+	 * the attributes used by WooCommerce quantity inputs.
+	 *
+	 * @param array<string, mixed> $allowed_html Allowed HTML tags and attributes.
+	 * @param string|array         $context      KSES context.
+	 * @return array<string, mixed>
+	 */
+	public function allow_cart_quantity_input_html( array $allowed_html, $context ): array {
+		if ( 'post' !== $context || ! function_exists( 'is_cart' ) || ( ! is_cart() && ! is_checkout() ) ) {
+			return $allowed_html;
+		}
+
+		$allowed_html['input'] = array(
+			'aria-label'   => true,
+			'autocomplete' => true,
+			'class'        => true,
+			'id'           => true,
+			'inputmode'    => true,
+			'max'          => true,
+			'min'          => true,
+			'name'         => true,
+			'pattern'      => true,
+			'placeholder'  => true,
+			'readonly'     => true,
+			'size'         => true,
+			'step'         => true,
+			'type'         => true,
+			'value'        => true,
+		);
+
+		return $allowed_html;
+	}
+
+	/**
 	 * Load frontend styles/scripts only when a shortcode renders.
 	 */
 	private function enqueue_assets(): void {
@@ -300,7 +388,7 @@ class YKT_Campaign_Frontend {
 					<?php endforeach; ?>
 				</ul>
 				<form class="paket-buku-card__purchase" method="get" action="<?php echo esc_url( wc_get_checkout_url() ); ?>">
-					<input type="hidden" name="add-to-cart" value="<?php echo esc_attr( (string) $product_id ); ?>">
+					<input type="hidden" name="ykt_campaign_add_to_cart" value="<?php echo esc_attr( (string) $product_id ); ?>">
 					<label class="paket-buku-card__qty-label">
 						<span><?php echo esc_html__( 'Jumlah', 'yiari-campaign-toolkit' ); ?></span>
 						<input class="paket-buku-card__qty" type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric">

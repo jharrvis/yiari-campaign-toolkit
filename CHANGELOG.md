@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Allowed WooCommerce cart quantity inputs through the KiriminAja cart template sanitizer so donors can edit quantities on the cart page.
+- Fixed campaign package buttons so selecting a package sets the chosen quantity as the final cart quantity instead of incrementing existing cart quantity on repeated clicks.
+- Loaded campaign frontend assets on WooCommerce cart/checkout pages and added cart page-width plus visible editable quantity field styles.
 - Rebuilt the campaign product shortcode from the `temp/product-card.html` and `temp/product-card.css` template, preserving WooCommerce checkout and quantity controls.
 - Updated the campaign product shortcode with a client-reference two-column layout, quantity selectors, direct checkout forms, and clearer Paket A/B shipping copy.
 - Added Sprint 5a Oxygen-friendly campaign frontend shortcodes for the Karmila & Gito landing section, two package cards, and cart icon.
