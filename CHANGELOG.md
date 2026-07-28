@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Updated the campaign product shortcode with a client-reference two-column layout, quantity selectors, direct checkout forms, and clearer Paket A/B shipping copy.
 - Added Sprint 5a Oxygen-friendly campaign frontend shortcodes for the Karmila & Gito landing section, two package cards, and cart icon.
 - Added responsive public campaign frontend assets and AJAX cart count refresh for cached pages.
 - Fixed Paket B checkout validation to follow the active KiriminAja district field instead of requiring WooCommerce city/postcode fields that are not present on the live checkout.
