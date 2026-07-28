@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Rebuilt the campaign product shortcode from the `temp/product-card.html` and `temp/product-card.css` template, preserving WooCommerce checkout and quantity controls.
 - Updated the campaign product shortcode with a client-reference two-column layout, quantity selectors, direct checkout forms, and clearer Paket A/B shipping copy.
 - Added Sprint 5a Oxygen-friendly campaign frontend shortcodes for the Karmila & Gito landing section, two package cards, and cart icon.
 - Added responsive public campaign frontend assets and AJAX cart count refresh for cached pages.

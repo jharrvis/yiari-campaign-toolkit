@@ -419,3 +419,331 @@
     display: none;
   }
 }
+
+.paket-buku-section {
+  --forest: #006442;
+  --forest-dark: #004f35;
+  --ink: #493933;
+  --muted: #675851;
+  --orange: #ee7e16;
+  --orange-hover: #d96c0e;
+  --cream: #fff8e9;
+  --yellow: #f4c91e;
+  --line: #eadfcd;
+  color: var(--ink);
+  font-family: "Nunito Sans", Arial, sans-serif;
+  margin: 0 auto;
+  padding: 64px 24px 80px;
+  width: min(100%, 1240px);
+}
+
+.paket-buku-section * {
+  box-sizing: border-box;
+}
+
+.paket-buku-section__intro {
+  margin: 0 auto 36px;
+  max-width: 740px;
+  text-align: center;
+}
+
+.paket-buku-section__eyebrow {
+  color: var(--forest);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.paket-buku-section h2,
+.paket-buku-card h3,
+.paket-buku-card__visual figcaption,
+.paket-buku-card__cta {
+  font-family: "Baloo 2", "Trebuchet MS", sans-serif;
+}
+
+.paket-buku-section h2 {
+  color: var(--forest);
+  font-size: clamp(36px, 4vw, 54px);
+  line-height: 1;
+  margin: 0;
+}
+
+.paket-buku-section__intro > :last-child {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.55;
+  margin: 10px auto 0;
+}
+
+.paket-buku-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.paket-buku-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 10px 28px rgba(62, 43, 28, .08);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.paket-buku-card--featured {
+  border: 2px solid var(--yellow);
+}
+
+.paket-buku-card__badge {
+  background: var(--forest);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  padding: 6px 11px;
+  position: absolute;
+  right: 16px;
+  text-transform: uppercase;
+  top: 16px;
+  z-index: 2;
+}
+
+.paket-buku-card__visual {
+  background: var(--cream);
+  display: grid;
+  margin: 0;
+  min-height: 310px;
+  overflow: hidden;
+  place-items: center;
+  position: relative;
+}
+
+.paket-buku-card__visual img {
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+.paket-buku-card__visual--single img {
+  width: min(72%, 330px);
+}
+
+.paket-buku-card__visual figcaption {
+  background: var(--forest);
+  border-radius: 13px;
+  bottom: 18px;
+  color: #fff;
+  font-size: 31px;
+  font-weight: 600;
+  letter-spacing: .045em;
+  line-height: 1;
+  margin: 0;
+  padding: 8px 18px 5px;
+  position: absolute;
+  right: 22px;
+  z-index: 1;
+}
+
+.paket-buku-card__visual--double .book {
+  position: absolute;
+  width: 61%;
+}
+
+.paket-buku-card__visual--double .book--back {
+  left: 3%;
+  top: 2px;
+  transform: rotate(-6deg);
+}
+
+.paket-buku-card__visual--double .book--front {
+  bottom: -7px;
+  right: -1%;
+  transform: rotate(5deg);
+}
+
+.paket-buku-card__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 27px 28px 29px;
+}
+
+.paket-buku-card h3 {
+  color: var(--forest);
+  font-size: 32px;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.paket-buku-card__description {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 10px 0 20px;
+}
+
+.paket-buku-card__benefits {
+  display: grid;
+  font-size: 15px;
+  font-weight: 700;
+  gap: 11px;
+  line-height: 1.35;
+  list-style: none;
+  margin: 0 0 25px;
+  padding: 0;
+}
+
+.paket-buku-card__benefits li {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.paket-buku-card__benefits li::before {
+  background: var(--forest);
+  border-radius: 50%;
+  color: #fff;
+  content: "✓";
+  display: grid;
+  flex: 0 0 23px;
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  height: 23px;
+  line-height: 1;
+  place-items: center;
+  width: 23px;
+}
+
+.paket-buku-card__purchase {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.paket-buku-card__qty-label {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto 110px;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.paket-buku-card__qty-label span {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.paket-buku-card__qty {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 800;
+  height: 46px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.paket-buku-card__cta {
+  align-items: center;
+  background: var(--orange);
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 22px;
+  font-weight: 600;
+  gap: 10px;
+  justify-content: center;
+  line-height: 1;
+  min-height: 50px;
+  padding: 10px 17px;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color .2s ease, transform .2s ease;
+  width: 100%;
+}
+
+.paket-buku-card__cta:hover {
+  background: var(--orange-hover);
+  transform: translateY(-2px);
+}
+
+.paket-buku-card__cta:focus-visible {
+  outline: 3px solid var(--forest);
+  outline-offset: 3px;
+}
+
+.paket-buku-card__cta span {
+  font-family: Arial, sans-serif;
+  font-size: 24px;
+}
+
+.paket-buku-card__cta .amount {
+  color: inherit;
+}
+
+@media (max-width: 740px) {
+  .paket-buku-section {
+    padding: 48px 18px 64px;
+  }
+
+  .paket-buku-section__intro {
+    margin-bottom: 27px;
+  }
+
+  .paket-buku-section h2 {
+    font-size: 39px;
+  }
+
+  .paket-buku-section__intro > :last-child {
+    font-size: 16px;
+  }
+
+  .paket-buku-grid {
+    gap: 24px;
+    grid-template-columns: 1fr;
+  }
+
+  .paket-buku-card__visual {
+    min-height: 300px;
+  }
+
+  .paket-buku-card__content {
+    padding: 24px 22px;
+  }
+}
+
+@media (max-width: 380px) {
+  .paket-buku-section h2 {
+    font-size: 34px;
+  }
+
+  .paket-buku-card__visual {
+    min-height: 270px;
+  }
+
+  .paket-buku-card h3 {
+    font-size: 29px;
+  }
+
+  .paket-buku-card__cta {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paket-buku-card__cta {
+    transition: none;
+  }
+}

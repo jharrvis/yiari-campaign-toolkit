@@ -118,10 +118,18 @@ class YKT_Campaign_Frontend {
 
 		ob_start();
 		?>
-		<div id="ykt-campaign-products" class="ykt-products" aria-label="Pilihan paket campaign">
-			<?php echo $this->render_product_card( 'A', $products['A'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<?php echo $this->render_product_card( 'B', $products['B'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-		</div>
+		<section id="ykt-campaign-products" class="paket-buku-section" aria-labelledby="paket-buku-heading">
+			<div class="paket-buku-section__intro">
+				<p class="paket-buku-section__eyebrow"><?php echo esc_html__( 'Batch 1', 'yiari-campaign-toolkit' ); ?></p>
+				<h2 id="paket-buku-heading"><?php echo esc_html__( 'Pilih paket bukumu', 'yiari-campaign-toolkit' ); ?></h2>
+				<p><?php echo esc_html__( 'Setiap pembelian membantu menghadirkan buku dan cerita konservasi bagi anak-anak di Kalimantan Barat.', 'yiari-campaign-toolkit' ); ?></p>
+			</div>
+
+			<div class="paket-buku-grid">
+				<?php echo $this->render_product_card( 'A', $products['A'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php echo $this->render_product_card( 'B', $products['B'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			</div>
+		</section>
 		<?php
 
 		return (string) ob_get_clean();
@@ -182,7 +190,8 @@ class YKT_Campaign_Frontend {
 	 * Load frontend styles/scripts only when a shortcode renders.
 	 */
 	private function enqueue_assets(): void {
-		wp_enqueue_style( 'ykt-campaign-frontend', YKT_PLUGIN_URL . 'assets/campaign-frontend.css', array(), YKT_VERSION );
+		wp_enqueue_style( 'ykt-campaign-fonts', 'https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap', array(), null );
+		wp_enqueue_style( 'ykt-campaign-frontend', YKT_PLUGIN_URL . 'assets/campaign-frontend.css', array( 'ykt-campaign-fonts' ), YKT_VERSION );
 		wp_enqueue_script( 'ykt-campaign-frontend', YKT_PLUGIN_URL . 'assets/campaign-frontend.js', array(), YKT_VERSION, true );
 		wp_localize_script(
 			'ykt-campaign-frontend',
@@ -232,7 +241,7 @@ class YKT_Campaign_Frontend {
 	 */
 	private function render_product_card( string $package, ?WC_Product $product ): string {
 		if ( ! $product instanceof WC_Product ) {
-			return '<article class="ykt-product-card ykt-product-card--missing"><h2>' . esc_html__( 'Produk belum tersedia', 'yiari-campaign-toolkit' ) . '</h2></article>';
+			return '<article class="paket-buku-card"><div class="paket-buku-card__content"><h3>' . esc_html__( 'Produk belum tersedia', 'yiari-campaign-toolkit' ) . '</h3></div></article>';
 		}
 
 		$product_id = $product->get_id();
@@ -242,36 +251,64 @@ class YKT_Campaign_Frontend {
 			$fallback_product = $fallback_product_id ? wc_get_product( $fallback_product_id ) : null;
 			$image = $fallback_product instanceof WC_Product ? wp_get_attachment_image_url( $fallback_product->get_image_id(), 'medium_large' ) : '';
 		}
-		$description = 'A' === $package
-			? __( 'Traktir buku untuk anak-anak di sekolah Kalimantan. Harga sudah termasuk biaya distribusi dari YIARI, sehingga donor tidak perlu mengisi alamat pengiriman.', 'yiari-campaign-toolkit' )
-			: __( 'Beli satu buku untuk Anda dan traktir satu buku untuk anak-anak. Ongkos kirim dihitung di checkout sesuai alamat donor melalui KiriminAja.', 'yiari-campaign-toolkit' );
-		$badge = 'A' === $package ? __( 'Distribusi ke sekolah', 'yiari-campaign-toolkit' ) : __( 'Kirim ke alamat donor', 'yiari-campaign-toolkit' );
-		$package_label = 'A' === $package ? __( 'Paket A', 'yiari-campaign-toolkit' ) : __( 'Paket B', 'yiari-campaign-toolkit' );
+
+		$is_package_a = 'A' === $package;
+		$article_class = $is_package_a ? 'paket-buku-card' : 'paket-buku-card paket-buku-card--featured';
+		$visual_class = $is_package_a ? 'paket-buku-card__visual paket-buku-card__visual--single' : 'paket-buku-card__visual paket-buku-card__visual--double';
+		$title = $is_package_a ? __( 'Traktir Buku untuk Anak', 'yiari-campaign-toolkit' ) : __( 'Beli Buku, Traktir Buku', 'yiari-campaign-toolkit' );
+		$description = $is_package_a
+			? __( 'Danai buku untuk anak-anak di sekolah atau taman baca di Kalimantan Barat. Biaya distribusi ditangani YIARI, sehingga donor tidak perlu mengisi alamat pengiriman.', 'yiari-campaign-toolkit' )
+			: __( 'Dapatkan buku untukmu sekaligus mendanai buku untuk anak di sekitar habitat orangutan. Ongkos kirim dihitung sesuai alamat donor.', 'yiari-campaign-toolkit' );
+		$button_label = $is_package_a ? __( 'Traktir mulai', 'yiari-campaign-toolkit' ) : __( 'Beli & traktir', 'yiari-campaign-toolkit' );
+		$benefits = $is_package_a
+			? array(
+				__( 'Buku untuk anak di Kalimantan', 'yiari-campaign-toolkit' ),
+				__( 'Biaya distribusi ke sekolah sudah termasuk', 'yiari-campaign-toolkit' ),
+				__( 'Sertifikat digital apresiasi', 'yiari-campaign-toolkit' ),
+				__( 'Laporan perkembangan program', 'yiari-campaign-toolkit' ),
+			)
+			: array(
+				__( 'Buku fisik dan freebies untuk kamu', 'yiari-campaign-toolkit' ),
+				__( 'Buku untuk anak di Kalimantan', 'yiari-campaign-toolkit' ),
+				__( 'Ongkir ke alamat donor dihitung di checkout', 'yiari-campaign-toolkit' ),
+				__( 'Sertifikat digital apresiasi', 'yiari-campaign-toolkit' ),
+			);
 
 		ob_start();
 		?>
-		<article class="ykt-product-card ykt-product-card--<?php echo esc_attr( strtolower( $package ) ); ?>">
-			<?php if ( $image ) : ?>
-				<img class="ykt-product-card__image" src="<?php echo esc_url( $image ); ?>" alt="<?php echo esc_attr( $product->get_name() ); ?>" loading="lazy">
+		<article class="<?php echo esc_attr( $article_class ); ?>" aria-labelledby="paket-<?php echo esc_attr( strtolower( $package ) ); ?>-title">
+			<?php if ( ! $is_package_a ) : ?>
+				<div class="paket-buku-card__badge"><?php echo esc_html__( 'Pilihan Terbaik', 'yiari-campaign-toolkit' ); ?></div>
 			<?php endif; ?>
-			<div class="ykt-product-card__body">
-				<span class="ykt-product-card__badge"><?php echo esc_html( $badge ); ?></span>
-				<h2><?php echo esc_html( $product->get_name() ); ?></h2>
-				<p><?php echo esc_html( $description ); ?></p>
-				<div class="ykt-product-card__footer">
-					<div>
-						<span class="ykt-product-card__package"><?php echo esc_html( $package_label ); ?></span>
-						<strong class="ykt-product-card__price"><?php echo wp_kses_post( $product->get_price_html() ); ?></strong>
-					</div>
-					<form class="ykt-product-card__form" method="get" action="<?php echo esc_url( wc_get_checkout_url() ); ?>">
-						<input type="hidden" name="add-to-cart" value="<?php echo esc_attr( (string) $product_id ); ?>">
-						<label>
-							<span><?php echo esc_html__( 'Qty', 'yiari-campaign-toolkit' ); ?></span>
-							<input class="ykt-product-card__qty" type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric">
-						</label>
-						<button class="ykt-button ykt-button--primary" type="submit"><?php echo esc_html__( 'Pilih Paket Ini', 'yiari-campaign-toolkit' ); ?></button>
-					</form>
-				</div>
+			<figure class="<?php echo esc_attr( $visual_class ); ?>">
+				<?php if ( $image ) : ?>
+					<?php if ( $is_package_a ) : ?>
+						<img src="<?php echo esc_url( $image ); ?>" alt="<?php echo esc_attr( $product->get_name() ); ?>" loading="lazy">
+					<?php else : ?>
+						<img class="book book--back" src="<?php echo esc_url( $image ); ?>" alt="" loading="lazy">
+						<img class="book book--front" src="<?php echo esc_url( $image ); ?>" alt="<?php echo esc_attr( $product->get_name() ); ?>" loading="lazy">
+					<?php endif; ?>
+				<?php endif; ?>
+				<figcaption><?php echo esc_html( 'Paket ' . $package ); ?></figcaption>
+			</figure>
+			<div class="paket-buku-card__content">
+				<h3 id="paket-<?php echo esc_attr( strtolower( $package ) ); ?>-title"><?php echo esc_html( $title ); ?></h3>
+				<p class="paket-buku-card__description"><?php echo esc_html( $description ); ?></p>
+				<ul class="paket-buku-card__benefits">
+					<?php foreach ( $benefits as $benefit ) : ?>
+						<li><?php echo esc_html( $benefit ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+				<form class="paket-buku-card__purchase" method="get" action="<?php echo esc_url( wc_get_checkout_url() ); ?>">
+					<input type="hidden" name="add-to-cart" value="<?php echo esc_attr( (string) $product_id ); ?>">
+					<label class="paket-buku-card__qty-label">
+						<span><?php echo esc_html__( 'Jumlah', 'yiari-campaign-toolkit' ); ?></span>
+						<input class="paket-buku-card__qty" type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric">
+					</label>
+					<button class="paket-buku-card__cta" type="submit">
+						<?php echo esc_html( $button_label ); ?> <?php echo wp_kses_post( $product->get_price_html() ); ?> <span aria-hidden="true">&rarr;</span>
+					</button>
+				</form>
 			</div>
 		</article>
 		<?php
