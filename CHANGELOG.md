@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added automatic KiriminAja drop-off AWB initiation for paid Paket B/MIXED campaign orders, creating the KiriminAja shipping payment record without manual admin package input.
+- Added safeguards for old KiriminAja transactions by recalculating them against the currently enabled courier before auto drop-off AWB creation, without changing the paid WooCommerce order total.
+- Added KiriminAja pickup/payment metadata sync, one-hour retry throttling for failed AWB creation attempts, and public tracking fallback for campaign orders missing WooCommerce analytics rows.
 - Added Midtrans payment reconciliation for pending WooCommerce campaign orders so successful payments can still trigger campaign statuses, certificates, and emails when the webhook is missed.
 - Updated certificate PDF generation to use the client certificate template from `temp/certificate-template.html` with donor name and certificate number injected on the first page.
 - Allowed WooCommerce checkout/order-pay pages through WooCommerce Store Coming Soon mode so public donors can complete Midtrans payment while other store pages may remain hidden.
