@@ -31,6 +31,7 @@ require_once YKT_PLUGIN_DIR . 'includes/class-ykt-certificate.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-shipping-sync.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-progress-counter.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-campaign-frontend.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-midtrans-bridge.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-admin.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-segmentation.php';
 
@@ -69,6 +70,7 @@ function ykt_bootstrap(): void {
 	( new YKT_Shipping_Sync() )->init();
 	( new YKT_Progress_Counter() )->init();
 	( new YKT_Campaign_Frontend() )->init();
+	( new YKT_Midtrans_Bridge() )->init();
 	( new YKT_Admin() )->init();
 	( new YKT_Segmentation() )->init();
 

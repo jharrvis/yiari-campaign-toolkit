@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a Midtrans notification bridge so the existing donation AJAX notification URL can also update WooCommerce campaign orders.
 - Allowed WooCommerce cart quantity inputs through the KiriminAja cart template sanitizer so donors can edit quantities on the cart page.
 - Fixed campaign package buttons so selecting a package sets the chosen quantity as the final cart quantity instead of incrementing existing cart quantity on repeated clicks.
 - Loaded campaign frontend assets on WooCommerce cart/checkout pages and added cart page-width plus visible editable quantity field styles.
