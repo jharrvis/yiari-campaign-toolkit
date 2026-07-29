@@ -19,6 +19,54 @@ class YKT_Midtrans_Bridge {
 	public function init(): void {
 		add_action( 'wp_ajax_midtrans_notification', array( $this, 'maybe_handle_woocommerce_notification' ), 1 );
 		add_action( 'wp_ajax_nopriv_midtrans_notification', array( $this, 'maybe_handle_woocommerce_notification' ), 1 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'isolate_woocommerce_midtrans_checkout_scripts' ), 100 );
+		add_filter( 'script_loader_tag', array( $this, 'suppress_donation_midtrans_checkout_script_tag' ), 100, 3 );
+		add_filter( 'woocommerce_coming_soon_exclude', array( $this, 'allow_woocommerce_payment_pages_during_store_coming_soon' ) );
+	}
+
+	/**
+	 * Keep donation Midtrans scripts away from WooCommerce checkout/payment pages.
+	 *
+	 * The donation plugin and WooCommerce Midtrans gateway can both load Snap JS, but they
+	 * may use different Midtrans environments and client keys. On WooCommerce checkout and
+	 * order-pay pages the WooCommerce gateway must own the Snap script so its sandbox or
+	 * production key matches the order token. Donation pages keep their own scripts.
+	 */
+	public function isolate_woocommerce_midtrans_checkout_scripts(): void {
+		if ( ! $this->is_woocommerce_checkout_payment_context() ) {
+			return;
+		}
+
+		foreach ( $this->donation_midtrans_script_handles() as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+	}
+
+	/**
+	 * Allow public WooCommerce payment pages while the rest of the store remains Coming Soon.
+	 */
+	public function allow_woocommerce_payment_pages_during_store_coming_soon( bool $exclude ): bool {
+		if ( $exclude ) {
+			return true;
+		}
+
+		return $this->is_woocommerce_checkout_payment_context();
+	}
+
+	/**
+	 * Suppress donation Snap script tags if another plugin enqueues them late.
+	 */
+	public function suppress_donation_midtrans_checkout_script_tag( string $tag, string $handle, string $src ): string {
+		if ( ! $this->is_woocommerce_checkout_payment_context() ) {
+			return $tag;
+		}
+
+		if ( ! in_array( $handle, $this->donation_midtrans_script_handles(), true ) ) {
+			return $tag;
+		}
+
+		return '';
 	}
 
 	/**
@@ -107,6 +155,39 @@ class YKT_Midtrans_Bridge {
 		}
 
 		return wp_unslash( $_POST );
+	}
+
+	/**
+	 * Check whether the current request is a WooCommerce checkout or order payment page.
+	 */
+	private function is_woocommerce_checkout_payment_context(): bool {
+		if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+			return true;
+		}
+
+		if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-pay' ) ) {
+			return true;
+		}
+
+		if ( '' !== (string) get_query_var( 'order-pay', '' ) ) {
+			return true;
+		}
+
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+
+		return str_contains( $request_uri, '/checkout/' ) || str_contains( $request_uri, '/order-pay/' );
+	}
+
+	/**
+	 * Script handles used by the installed donation plugins for Midtrans Snap.
+	 *
+	 * @return string[]
+	 */
+	private function donation_midtrans_script_handles(): array {
+		return array(
+			'donasi-unified-midtrans-snap',
+			'midtrans-snap',
+		);
 	}
 
 	/**

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Allowed WooCommerce checkout/order-pay pages through WooCommerce Store Coming Soon mode so public donors can complete Midtrans payment while other store pages may remain hidden.
+- Isolated donation Midtrans Snap scripts from WooCommerce checkout/order-pay pages so WooCommerce Midtrans can load the matching sandbox or production Snap script without breaking donation pages.
 - Added a Midtrans notification bridge so the existing donation AJAX notification URL can also update WooCommerce campaign orders.
 - Allowed WooCommerce cart quantity inputs through the KiriminAja cart template sanitizer so donors can edit quantities on the cart page.
 - Fixed campaign package buttons so selecting a package sets the chosen quantity as the final cart quantity instead of incrementing existing cart quantity on repeated clicks.
