@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Lets the donation Midtrans AJAX endpoint also update WooCommerce Midtrans orders.
  */
 class YKT_Midtrans_Bridge {
+	private const RECONCILIATION_CRON_HOOK = 'ykt_reconcile_midtrans_pending_orders';
+	private const RECONCILIATION_LIMIT = 20;
+
 	/**
 	 * Register bridge hooks before the donation plugin handles the same AJAX action.
 	 */
@@ -22,6 +25,19 @@ class YKT_Midtrans_Bridge {
 		add_action( 'wp_enqueue_scripts', array( $this, 'isolate_woocommerce_midtrans_checkout_scripts' ), 100 );
 		add_filter( 'script_loader_tag', array( $this, 'suppress_donation_midtrans_checkout_script_tag' ), 100, 3 );
 		add_filter( 'woocommerce_coming_soon_exclude', array( $this, 'allow_woocommerce_payment_pages_during_store_coming_soon' ) );
+		add_action( 'template_redirect', array( $this, 'reconcile_current_payment_page' ), 5 );
+		add_filter( 'cron_schedules', array( $this, 'add_reconciliation_cron_schedule' ) );
+		add_action( self::RECONCILIATION_CRON_HOOK, array( $this, 'reconcile_recent_pending_midtrans_orders' ) );
+
+		$event = wp_get_scheduled_event( self::RECONCILIATION_CRON_HOOK );
+		if ( $event && 'ykt_five_minutes' !== $event->schedule ) {
+			wp_clear_scheduled_hook( self::RECONCILIATION_CRON_HOOK );
+			$event = false;
+		}
+
+		if ( ! $event ) {
+			wp_schedule_event( time() + 300, 'ykt_five_minutes', self::RECONCILIATION_CRON_HOOK );
+		}
 	}
 
 	/**
@@ -70,6 +86,72 @@ class YKT_Midtrans_Bridge {
 	}
 
 	/**
+	 * Add a short reconciliation interval for missed Midtrans webhooks.
+	 *
+	 * @param array<string, array{interval:int, display:string}> $schedules Cron schedules.
+	 * @return array<string, array{interval:int, display:string}>
+	 */
+	public function add_reconciliation_cron_schedule( array $schedules ): array {
+		$schedules['ykt_five_minutes'] = array(
+			'interval' => 5 * MINUTE_IN_SECONDS,
+			'display'  => __( 'Every five minutes', 'yiari-campaign-toolkit' ),
+		);
+
+		return $schedules;
+	}
+
+	/**
+	 * Reconcile a Midtrans order when the donor returns to a WooCommerce payment page.
+	 */
+	public function reconcile_current_payment_page(): void {
+		if ( ! $this->is_woocommerce_checkout_payment_context() ) {
+			return;
+		}
+
+		$order_id = absint( get_query_var( 'order-pay', 0 ) );
+		if ( ! $order_id ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order || ! $this->is_woocommerce_midtrans_order( $order ) ) {
+			return;
+		}
+
+		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : '';
+		if ( $order_key && ! hash_equals( $order->get_order_key(), $order_key ) ) {
+			return;
+		}
+
+		$this->reconcile_order_payment( $order, 'payment page return' );
+	}
+
+	/**
+	 * Periodically reconcile recent pending WooCommerce Midtrans campaign orders.
+	 */
+	public function reconcile_recent_pending_midtrans_orders(): void {
+		if ( ! function_exists( 'wc_get_orders' ) || ! class_exists( 'YKT_Checkout' ) ) {
+			return;
+		}
+
+		$orders = wc_get_orders(
+			array(
+				'limit'          => self::RECONCILIATION_LIMIT,
+				'status'         => array( 'pending', 'pending-payment' ),
+				'payment_method' => 'midtrans',
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			)
+		);
+
+		foreach ( $orders as $order ) {
+			if ( $order instanceof WC_Order && YKT_Checkout::order_has_campaign_package( $order ) ) {
+				$this->reconcile_order_payment( $order, 'scheduled reconciliation' );
+			}
+		}
+	}
+
+	/**
 	 * Process WooCommerce Midtrans notifications that arrive at the legacy donation endpoint.
 	 *
 	 * The Midtrans dashboard still points to admin-ajax.php?action=midtrans_notification for
@@ -100,10 +182,7 @@ class YKT_Midtrans_Bridge {
 			wp_send_json_error( array( 'message' => 'WooCommerce Midtrans handler unavailable.' ), 500 );
 		}
 
-		$plugin_id = $order->get_payment_method();
-		if ( str_contains( $plugin_id, 'midtrans_sub' ) ) {
-			$plugin_id = 'midtrans';
-		}
+		$plugin_id = $this->midtrans_plugin_id_for_order( $order );
 
 		try {
 			// Query Midtrans by WooCommerce order id so the shared AJAX endpoint can accept
@@ -139,6 +218,43 @@ class YKT_Midtrans_Bridge {
 				'transaction_status' => $notification->transaction_status ?? '',
 			)
 		);
+	}
+
+	/**
+	 * Verify and apply a successful Midtrans status to a pending WooCommerce order.
+	 */
+	private function reconcile_order_payment( WC_Order $order, string $source ): bool {
+		if ( ! $this->is_woocommerce_midtrans_order( $order ) || ! $order->needs_payment() ) {
+			return false;
+		}
+
+		if ( ! class_exists( 'WC_Midtrans_API' ) || ! class_exists( 'WC_Gateway_Midtrans_Notif_Handler' ) ) {
+			$order->add_order_note( __( 'YKT Midtrans reconciliation skipped because the WooCommerce Midtrans handler is unavailable.', 'yiari-campaign-toolkit' ) );
+			return false;
+		}
+
+		$plugin_id = $this->midtrans_plugin_id_for_order( $order );
+
+		try {
+			$notification = WC_Midtrans_API::getMidtransStatus( $order->get_id(), $plugin_id );
+		} catch ( Exception $exception ) {
+			$this->log( sprintf( 'Midtrans reconciliation failed for order %d: %s', $order->get_id(), $exception->getMessage() ), 'warning' );
+			return false;
+		}
+
+		if ( empty( $notification->status_code ) || ! in_array( (int) $notification->status_code, array( 200, 201, 202, 407 ), true ) ) {
+			return false;
+		}
+
+		if ( ! $this->is_successful_midtrans_status( $notification ) ) {
+			return false;
+		}
+
+		$order->add_order_note( sprintf( __( 'YKT Midtrans reconciliation confirmed payment via %s.', 'yiari-campaign-toolkit' ), $source ) );
+		$handler = new WC_Gateway_Midtrans_Notif_Handler();
+		$handler->handleMidtransValidNotificationRequest( $notification, $plugin_id );
+
+		return true;
 	}
 
 	/**
@@ -191,6 +307,19 @@ class YKT_Midtrans_Bridge {
 	}
 
 	/**
+	 * Get the WooCommerce Midtrans plugin id expected by the official handler.
+	 */
+	private function midtrans_plugin_id_for_order( WC_Order $order ): string {
+		$plugin_id = $order->get_payment_method();
+
+		if ( str_contains( $plugin_id, 'midtrans_sub' ) ) {
+			return 'midtrans';
+		}
+
+		return $plugin_id ?: 'midtrans';
+	}
+
+	/**
 	 * Restore a WooCommerce order id from a Midtrans suffixed order id when supported.
 	 */
 	private function restore_midtrans_order_id( string $order_id ): string {
@@ -199,6 +328,15 @@ class YKT_Midtrans_Bridge {
 		}
 
 		return $order_id;
+	}
+
+	/**
+	 * Log bridge events without interrupting checkout/payment flows.
+	 */
+	private function log( string $message, string $level = 'info' ): void {
+		if ( function_exists( 'wc_get_logger' ) ) {
+			wc_get_logger()->log( $level, $message, array( 'source' => 'yiari-campaign-toolkit' ) );
+		}
 	}
 
 	/**

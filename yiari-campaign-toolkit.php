@@ -53,6 +53,7 @@ function ykt_activate(): void {
  */
 function ykt_deactivate(): void {
 	YKT_Shipping_Sync::deactivate();
+	wp_clear_scheduled_hook( 'ykt_reconcile_midtrans_pending_orders' );
 }
 
 /**

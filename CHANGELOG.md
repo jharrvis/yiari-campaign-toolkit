@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Midtrans payment reconciliation for pending WooCommerce campaign orders so successful payments can still trigger campaign statuses, certificates, and emails when the webhook is missed.
+- Updated certificate PDF generation to use the client certificate template from `temp/certificate-template.html` with donor name and certificate number injected on the first page.
 - Allowed WooCommerce checkout/order-pay pages through WooCommerce Store Coming Soon mode so public donors can complete Midtrans payment while other store pages may remain hidden.
 - Isolated donation Midtrans Snap scripts from WooCommerce checkout/order-pay pages so WooCommerce Midtrans can load the matching sandbox or production Snap script without breaking donation pages.
 - Added a Midtrans notification bridge so the existing donation AJAX notification URL can also update WooCommerce campaign orders.

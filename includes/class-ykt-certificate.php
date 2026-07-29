@@ -110,11 +110,13 @@ class YKT_Certificate {
 		$html    = $this->render_certificate_html( $order, $certificate_number );
 		$options = new Options();
 		$options->set( 'isRemoteEnabled', false );
+		$options->set( 'isHtml5ParserEnabled', true );
 		$options->set( 'defaultFont', 'DejaVu Sans' );
+		$options->setChroot( YKT_PLUGIN_DIR );
 
 		$dompdf = new Dompdf( $options );
 		$dompdf->loadHtml( $html, 'UTF-8' );
-		$dompdf->setPaper( 'A4', 'landscape' );
+		$dompdf->setPaper( 'A4', 'portrait' );
 		$dompdf->render();
 
 		$bytes_written = file_put_contents( $absolute_path, $dompdf->output() );
@@ -161,16 +163,108 @@ class YKT_Certificate {
 	 * @param string   $certificate_number Certificate number.
 	 */
 	private function render_certificate_html( WC_Order $order, string $certificate_number ): string {
-		$package_type     = strtoupper( (string) $order->get_meta( self::META_PACKAGE_TYPE, true ) );
-		$package_label    = $this->package_label( $package_type );
-		$book_quantity    = $this->book_quantity( $order );
-		$donor_name       = trim( $order->get_formatted_billing_full_name() ) ?: __( 'YIARI Supporter', 'yiari-campaign-toolkit' );
-		$certificate_date = wp_date( 'j F Y', $order->get_date_paid() ? $order->get_date_paid()->getTimestamp() : time() );
-		$program_name     = __( 'Karmila & Gito Book Campaign', 'yiari-campaign-toolkit' );
+		$donor_name = trim( $order->get_formatted_billing_full_name() ) ?: __( 'YIARI Supporter', 'yiari-campaign-toolkit' );
+		$template   = $this->certificate_template_html();
 
-		ob_start();
-		include YKT_PLUGIN_DIR . 'templates/certificate.php';
-		return (string) ob_get_clean();
+		if ( is_wp_error( $template ) ) {
+			$package_type     = strtoupper( (string) $order->get_meta( self::META_PACKAGE_TYPE, true ) );
+			$package_label    = $this->package_label( $package_type );
+			$book_quantity    = $this->book_quantity( $order );
+			$certificate_date = wp_date( 'j F Y', $order->get_date_paid() ? $order->get_date_paid()->getTimestamp() : time() );
+			$program_name     = __( 'Karmila & Gito Book Campaign', 'yiari-campaign-toolkit' );
+
+			ob_start();
+			include YKT_PLUGIN_DIR . 'templates/certificate.php';
+			return (string) ob_get_clean();
+		}
+
+		$name_class = '';
+		$name_length = function_exists( 'mb_strlen' ) ? mb_strlen( $donor_name ) : strlen( $donor_name );
+		if ( $name_length > 62 ) {
+			$name_class = ' certificate-recipient--very-long';
+		} elseif ( $name_length > 38 ) {
+			$name_class = ' certificate-recipient--long';
+		}
+
+		$html = $template;
+		$html = preg_replace( '#<link[^>]+certificate-template\.css[^>]*>#i', '<style>' . $this->certificate_template_css() . '</style>', $html );
+		$html = preg_replace( '#<link[^>]+fonts\.googleapis\.com[^>]*>#i', '', (string) $html );
+		$html = preg_replace( '#<link[^>]+fonts\.gstatic\.com[^>]*>#i', '', (string) $html );
+		$html = preg_replace( '#<script\b[^>]*>.*?</script>#is', '', (string) $html );
+		$html = str_replace( 'src="cert/background-front.jpg"', 'src="' . esc_attr( $this->image_data_uri( YKT_PLUGIN_DIR . 'temp/cert/background-front.jpg' ) ) . '"', (string) $html );
+		$html = str_replace( 'src="cert/background-back.jpg"', 'src="' . esc_attr( $this->image_data_uri( YKT_PLUGIN_DIR . 'temp/cert/background-back.jpg' ) ) . '"', $html );
+		$html = preg_replace(
+			'#<p class="certificate-recipient[^\"]*">.*?</p>#s',
+			'<p class="certificate-recipient' . esc_attr( $name_class ) . '">' . esc_html( $donor_name ) . '</p>',
+			$html
+		);
+		$html = preg_replace(
+			'#<p class="certificate-number">.*?</p>#s',
+			'<p class="certificate-number">No. ' . esc_html( $certificate_number ) . '</p>',
+			(string) $html
+		);
+
+		return (string) $html;
+	}
+
+	/**
+	 * Read the client certificate HTML template.
+	 *
+	 * @return string|WP_Error
+	 */
+	private function certificate_template_html() {
+		$template_path = YKT_PLUGIN_DIR . 'temp/certificate-template.html';
+		if ( ! file_exists( $template_path ) ) {
+			return new WP_Error( 'ykt_certificate_template_missing', 'Certificate template HTML is missing.' );
+		}
+
+		$template = file_get_contents( $template_path );
+		if ( false === $template ) {
+			return new WP_Error( 'ykt_certificate_template_read_error', 'Unable to read certificate template HTML.' );
+		}
+
+		return $template;
+	}
+
+	/**
+	 * Read the client certificate CSS template.
+	 */
+	private function certificate_template_css(): string {
+		$css_path = YKT_PLUGIN_DIR . 'temp/certificate-template.css';
+		if ( ! file_exists( $css_path ) ) {
+			return '';
+		}
+
+		$css = file_get_contents( $css_path );
+		if ( false === $css ) {
+			return '';
+		}
+
+		// Dompdf renders the PDF directly, so screen-only responsive and print rules are unnecessary.
+		$css = preg_replace( '#@media\s+screen[^{}]*\{(?:[^{}]*|\{[^{}]*\})*\}\s*#is', '', $css );
+		$css = preg_replace( '#@media\s+print[^{}]*\{(?:[^{}]*|\{[^{}]*\})*\}\s*#is', '', (string) $css );
+		$css = str_replace( 'font-family: "Dancing Script", "Brush Script MT", cursive;', 'font-family: "DejaVu Sans", sans-serif;', (string) $css );
+		$css .= "\nbody { background: #fff; }\n.certificate-document { display: block; padding: 0; gap: 0; }\n.certificate-page { margin: 0; box-shadow: none; }\n";
+
+		return $css;
+	}
+
+	/**
+	 * Embed a local image as a data URI so Dompdf does not need remote access.
+	 */
+	private function image_data_uri( string $path ): string {
+		if ( ! file_exists( $path ) ) {
+			return '';
+		}
+
+		$bytes = file_get_contents( $path );
+		if ( false === $bytes ) {
+			return '';
+		}
+
+		$mime = wp_check_filetype( $path )['type'] ?: 'image/jpeg';
+
+		return 'data:' . $mime . ';base64,' . base64_encode( $bytes );
 	}
 
 	/**
