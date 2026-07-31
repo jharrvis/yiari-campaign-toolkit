@@ -228,10 +228,14 @@ class YKT_Campaign_Frontend {
 	}
 
 	/**
-	 * Load campaign frontend assets on WooCommerce cart and checkout pages.
+	 * Load campaign frontend assets on WooCommerce cart, checkout, and account pages.
 	 */
 	public function enqueue_cart_assets(): void {
-		if ( function_exists( 'is_cart' ) && ( is_cart() || is_checkout() ) ) {
+		$is_cart = function_exists( 'is_cart' ) && is_cart();
+		$is_checkout = function_exists( 'is_checkout' ) && is_checkout();
+		$is_account = function_exists( 'is_account_page' ) && is_account_page();
+
+		if ( $is_cart || $is_checkout || $is_account ) {
 			$this->enqueue_assets();
 		}
 	}

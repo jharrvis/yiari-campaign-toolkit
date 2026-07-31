@@ -2,7 +2,7 @@
 /**
  * Plugin Name: YIARI Campaign Toolkit
  * Description: Campaign orchestration layer for the Karmila & Gito book fundraising flow.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Author: YIARI
  * Text Domain: yiari-campaign-toolkit
  * Requires Plugins: woocommerce
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YKT_VERSION', '0.1.1' );
+define( 'YKT_VERSION', '0.1.2' );
 define( 'YKT_PLUGIN_FILE', __FILE__ );
 define( 'YKT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'YKT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
