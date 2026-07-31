@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Updated the checkout campaign information section to Indonesian copy and replaced the donor reason textarea with radio choices plus a conditional custom reason field.
 - Added automatic KiriminAja drop-off AWB initiation for paid Paket B/MIXED campaign orders, creating the KiriminAja shipping payment record without manual admin package input.
 - Added safeguards for old KiriminAja transactions by recalculating them against the currently enabled courier before auto drop-off AWB creation, without changing the paid WooCommerce order total.
 - Added KiriminAja pickup/payment metadata sync, one-hour retry throttling for failed AWB creation attempts, and public tracking fallback for campaign orders missing WooCommerce analytics rows.

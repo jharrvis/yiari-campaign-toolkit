@@ -194,22 +194,43 @@ class YKT_Checkout {
 		}
 
 		echo '<div id="ykt-campaign-fields">';
-		echo '<h3>' . esc_html__( 'Campaign Information', 'yiari-campaign-toolkit' ) . '</h3>';
+		echo '<h3>' . esc_html__( 'Informasi Kampanye', 'yiari-campaign-toolkit' ) . '</h3>';
+
+		$reason_choices = $this->donor_reason_choices();
+		$selected_reason = $checkout->get_value( 'donor_reason_choice' );
+		if ( ! $selected_reason ) {
+			$selected_reason = $this->matching_donor_reason_choice( (string) $checkout->get_value( 'donor_reason' ) );
+		}
 
 		woocommerce_form_field(
-			'donor_reason',
+			'donor_reason_choice',
 			array(
-				'type'     => 'textarea',
-				'class'    => array( 'form-row-wide' ),
-				'label'    => __( 'Why do you want to support this campaign?', 'yiari-campaign-toolkit' ),
+				'type'     => 'radio',
+				'class'    => array( 'form-row-wide', 'ykt-donor-reason-choice' ),
+				'label'    => __( 'Apa alasan Anda ingin mendukung buku ini?', 'yiari-campaign-toolkit' ),
+				'options'  => $reason_choices,
 				'required' => false,
 			),
-			$checkout->get_value( 'donor_reason' )
+			$selected_reason
 		);
 
-		$this->render_checkbox( 'consent_updates', __( 'I agree to receive updates about this campaign.', 'yiari-campaign-toolkit' ), $checkout );
-		$this->render_checkbox( 'consent_yiari_info', __( 'I agree to receive information about YIARI programs.', 'yiari-campaign-toolkit' ), $checkout );
-		$this->render_checkbox( 'consent_testimonial', __( 'YIARI may contact me for a testimonial about this campaign.', 'yiari-campaign-toolkit' ), $checkout );
+		woocommerce_form_field(
+			'donor_reason_other',
+			array(
+				'type'        => 'text',
+				'class'       => array( 'form-row-wide', 'ykt-donor-reason-other' ),
+				'label'       => __( 'Alasan lainnya', 'yiari-campaign-toolkit' ),
+				'placeholder' => __( 'Tulis alasan Anda', 'yiari-campaign-toolkit' ),
+				'required'    => false,
+			),
+			$checkout->get_value( 'donor_reason_other' )
+		);
+
+		$this->render_donor_reason_toggle_script();
+
+		$this->render_checkbox( 'consent_updates', __( 'Saya bersedia menerima kabar terbaru tentang kampanye ini.', 'yiari-campaign-toolkit' ), $checkout );
+		$this->render_checkbox( 'consent_yiari_info', __( 'Saya bersedia menerima informasi tentang program YIARI.', 'yiari-campaign-toolkit' ), $checkout );
+		$this->render_checkbox( 'consent_testimonial', __( 'YIARI dapat menghubungi saya untuk testimoni tentang kampanye ini.', 'yiari-campaign-toolkit' ), $checkout );
 
 		echo '</div>';
 	}
@@ -275,7 +296,7 @@ class YKT_Checkout {
 		}
 
 		$order->update_meta_data( self::META_PACKAGE_TYPE, $cart_type );
-		$order->update_meta_data( self::META_DONOR_REASON, $this->posted_textarea( 'donor_reason' ) );
+		$order->update_meta_data( self::META_DONOR_REASON, $this->posted_donor_reason() );
 		$order->update_meta_data( self::META_CONSENT_UPDATES, $this->posted_bool( 'consent_updates' ) );
 		$order->update_meta_data( self::META_CONSENT_YIARI_INFO, $this->posted_bool( 'consent_yiari_info' ) );
 		$order->update_meta_data( self::META_CONSENT_TESTIMONIAL, $this->posted_bool( 'consent_testimonial' ) );
@@ -302,6 +323,69 @@ class YKT_Checkout {
 		if ( $package_type ) {
 			$item->update_meta_data( self::META_PACKAGE_TYPE, $package_type );
 		}
+	}
+
+
+	/**
+	 * Available donor reason choices shown on checkout.
+	 *
+	 * @return array<string, string>
+	 */
+	private function donor_reason_choices(): array {
+		return array(
+			'literasi_anak'    => __( 'Dukung peningkatan literasi anak', 'yiari-campaign-toolkit' ),
+			'orangutan_habitat' => __( 'Peduli orangutan dan habitatnya', 'yiari-campaign-toolkit' ),
+			'edukasi_konservasi' => __( 'Tertarik pada edukasi konservasi', 'yiari-campaign-toolkit' ),
+			'other'            => __( 'Lainnya ...', 'yiari-campaign-toolkit' ),
+		);
+	}
+
+	/**
+	 * Match a saved free-text reason back to a radio option when possible.
+	 *
+	 * @param string $reason Saved reason text.
+	 */
+	private function matching_donor_reason_choice( string $reason ): string {
+		$reason = trim( $reason );
+		foreach ( $this->donor_reason_choices() as $key => $label ) {
+			if ( 'other' !== $key && $reason === $label ) {
+				return $key;
+			}
+		}
+
+		return '' !== $reason ? 'other' : '';
+	}
+
+	/**
+	 * Render a tiny checkout script that shows the free-text field only for Lainnya.
+	 */
+	private function render_donor_reason_toggle_script(): void {
+		?>
+		<script>
+			(function() {
+				function toggleYktDonorReasonOther() {
+					var selected = document.querySelector('input[name="donor_reason_choice"]:checked');
+					var row = document.querySelector('.ykt-donor-reason-other');
+					if (!row) {
+						return;
+					}
+					row.style.display = selected && selected.value === 'other' ? '' : 'none';
+				}
+
+				document.addEventListener('change', function(event) {
+					if (event.target && event.target.name === 'donor_reason_choice') {
+						toggleYktDonorReasonOther();
+					}
+				});
+
+				if (document.readyState === 'loading') {
+					document.addEventListener('DOMContentLoaded', toggleYktDonorReasonOther);
+				} else {
+					toggleYktDonorReasonOther();
+				}
+			})();
+		</script>
+		<?php
 	}
 
 	/**
@@ -374,6 +458,22 @@ class YKT_Checkout {
 	 */
 	private function posted_textarea( string $key ): string {
 		return isset( $_POST[ $key ] ) ? sanitize_textarea_field( wp_unslash( $_POST[ $key ] ) ) : '';
+	}
+
+
+	/**
+	 * Build the donor reason text from the selected radio option.
+	 */
+	private function posted_donor_reason(): string {
+		$choice = isset( $_POST['donor_reason_choice'] ) ? sanitize_key( wp_unslash( $_POST['donor_reason_choice'] ) ) : '';
+		$choices = $this->donor_reason_choices();
+
+		if ( 'other' === $choice ) {
+			$other = $this->posted_textarea( 'donor_reason_other' );
+			return '' !== $other ? $other : ( $choices['other'] ?? '' );
+		}
+
+		return $choices[ $choice ] ?? '';
 	}
 
 	/**
