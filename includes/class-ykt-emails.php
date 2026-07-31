@@ -18,8 +18,26 @@ class YKT_Emails {
 	 */
 	public function init(): void {
 		add_filter( 'woocommerce_email_classes', array( $this, 'register_email_classes' ) );
+		add_filter( 'woocommerce_email_from_address', array( $this, 'support_email_address' ) );
+		add_filter( 'woocommerce_email_footer_text', array( $this, 'replace_footer_contact_email' ) );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'trigger_for_status' ), 50, 4 );
 		$this->register_loaded_mailer();
+	}
+
+	/**
+	 * Use YIARI's public media mailbox for WooCommerce customer email contact text.
+	 */
+	public function support_email_address(): string {
+		return 'media@yiari.or.id';
+	}
+
+	/**
+	 * Replace legacy contact email references in WooCommerce email footer text.
+	 *
+	 * @param string $footer_text Existing footer text.
+	 */
+	public function replace_footer_contact_email( string $footer_text ): string {
+		return str_replace( 'julian@mcimedia.net', $this->support_email_address(), $footer_text );
 	}
 
 	/**

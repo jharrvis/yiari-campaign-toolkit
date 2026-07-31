@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Updated WooCommerce campaign email contact address to media@yiari.or.id and added Paket B tracking plus order status links to campaign customer emails.
 - Registered campaign post-payment statuses as WooCommerce paid statuses so paid campaign orders remain recognized as paid after certificate and shipping lifecycle transitions.
 - Added campaign consent visibility in WooCommerce order admin and campaign CSV export, redirected the default shop archive to the campaign page, and added YIARI-styled single product presentation.
 - Removed WooCommerce's per-option optional markers from the campaign donor reason radio choices while keeping the field optional.

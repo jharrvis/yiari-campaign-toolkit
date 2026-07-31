@@ -36,6 +36,14 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 	</p>
 <?php endif; ?>
 
+<?php if ( $order instanceof WC_Order && in_array( strtoupper( (string) $order->get_meta( '_campaign_package_type', true ) ), array( 'B', 'MIXED' ), true ) ) : ?>
+	<p>
+		<strong><?php esc_html_e( 'Link pesanan Paket B', 'yiari-campaign-toolkit' ); ?></strong><br>
+		<a href="<?php echo esc_url( home_url( '/tracking/?order_id=' . rawurlencode( (string) $order->get_order_number() ) ) ); ?>"><?php esc_html_e( 'Tracking pesanan', 'yiari-campaign-toolkit' ); ?></a><br>
+		<a href="<?php echo esc_url( $order->get_checkout_order_received_url() ); ?>"><?php esc_html_e( 'Cek status order', 'yiari-campaign-toolkit' ); ?></a>
+	</p>
+<?php endif; ?>
+
 <?php if ( $order instanceof WC_Order ) : ?>
 	<p>
 		<?php
