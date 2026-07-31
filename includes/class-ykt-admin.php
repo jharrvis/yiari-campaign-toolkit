@@ -18,6 +18,10 @@ class YKT_Admin {
 	private const META_AWB_NUMBER = '_shipping_awb_number';
 	private const META_KIRIMINAJA_STATUS = '_kiriminaja_status';
 	private const META_INTERNAL_NOTE = '_internal_note';
+	private const META_DONOR_REASON = '_donor_reason';
+	private const META_CONSENT_UPDATES = '_consent_updates';
+	private const META_CONSENT_YIARI_INFO = '_consent_yiari_info';
+	private const META_CONSENT_TESTIMONIAL = '_consent_testimonial';
 	private const META_DONOR_SEGMENT = '_donor_segment';
 
 	/**
@@ -42,6 +46,7 @@ class YKT_Admin {
 		add_action( 'admin_notices', array( $this, 'render_bulk_action_notice' ) );
 
 		add_action( 'add_meta_boxes', array( $this, 'add_status_history_meta_box' ) );
+		add_action( 'add_meta_boxes', array( $this, 'add_campaign_information_meta_box' ) );
 		add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'render_internal_note_field' ) );
 		add_action( 'woocommerce_process_shop_order_meta', array( $this, 'save_internal_note_from_order_screen' ), 20, 1 );
 
@@ -268,6 +273,55 @@ class YKT_Admin {
 	}
 
 	/**
+	 * Add a campaign information side meta box to order screens.
+	 */
+	public function add_campaign_information_meta_box(): void {
+		foreach ( array( 'shop_order', 'woocommerce_page_wc-orders' ) as $screen ) {
+			add_meta_box(
+				'ykt_campaign_information',
+				__( 'Informasi Kampanye', 'yiari-campaign-toolkit' ),
+				array( $this, 'render_campaign_information_meta_box' ),
+				$screen,
+				'side',
+				'default'
+			);
+		}
+	}
+
+	/**
+	 * Render campaign donor information saved during checkout.
+	 *
+	 * @param WP_Post|WC_Order $post_or_order Post/order object.
+	 */
+	public function render_campaign_information_meta_box( $post_or_order ): void {
+		$order = $post_or_order instanceof WC_Order ? $post_or_order : wc_get_order( absint( $post_or_order->ID ?? 0 ) );
+		if ( ! $order instanceof WC_Order ) {
+			echo '<p>' . esc_html__( 'Order not found.', 'yiari-campaign-toolkit' ) . '</p>';
+			return;
+		}
+
+		$package = (string) $order->get_meta( self::META_PACKAGE_TYPE, true );
+		if ( '' === $package ) {
+			echo '<p>' . esc_html__( 'Order ini belum memiliki data kampanye.', 'yiari-campaign-toolkit' ) . '</p>';
+			return;
+		}
+
+		$rows = array(
+			__( 'Paket', 'yiari-campaign-toolkit' ) => 'Paket ' . $package,
+			__( 'Alasan Dukungan', 'yiari-campaign-toolkit' ) => (string) $order->get_meta( self::META_DONOR_REASON, true ),
+			__( 'Terima Kabar Campaign', 'yiari-campaign-toolkit' ) => $this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_UPDATES, true ) ),
+			__( 'Terima Info YIARI', 'yiari-campaign-toolkit' ) => $this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_YIARI_INFO, true ) ),
+			__( 'Bersedia Dihubungi Testimoni', 'yiari-campaign-toolkit' ) => $this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_TESTIMONIAL, true ) ),
+		);
+
+		echo '<table class="widefat striped"><tbody>';
+		foreach ( $rows as $label => $value ) {
+			echo '<tr><th style="width:45%;text-align:left;vertical-align:top;">' . esc_html( $label ) . '</th><td>' . esc_html( '' !== $value ? $value : '-' ) . '</td></tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+	/**
 	 * Render status history side panel.
 	 *
 	 * @param WP_Post|WC_Order $post_or_order Post/order object.
@@ -413,7 +467,7 @@ class YKT_Admin {
 		echo "\xEF\xBB\xBF";
 
 		$output = fopen( 'php://output', 'w' );
-		fputcsv( $output, array( 'Order ID', 'Date', 'Name', 'Contact', 'Package', 'Quantity', 'Payment Status', 'Certificate', 'Shipping Status', 'AWB', 'Impact Status', 'Segments', 'Internal Note' ) );
+		fputcsv( $output, array( 'Order ID', 'Date', 'Name', 'Contact', 'Package', 'Quantity', 'Payment Status', 'Certificate', 'Shipping Status', 'AWB', 'Impact Status', 'Segments', 'Donor Reason', 'Consent Campaign Updates', 'Consent YIARI Info', 'Consent Testimonial Contact', 'Internal Note' ) );
 
 		foreach ( $orders as $order ) {
 			if ( ! $order instanceof WC_Order ) {
@@ -435,6 +489,10 @@ class YKT_Admin {
 					$order->get_meta( self::META_AWB_NUMBER, true ),
 					'impact-sent' === $order->get_status() ? 'sent' : 'pending',
 					implode( ',', $this->segments_for_order( $order ) ),
+					$order->get_meta( self::META_DONOR_REASON, true ),
+					$this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_UPDATES, true ) ),
+					$this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_YIARI_INFO, true ) ),
+					$this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_TESTIMONIAL, true ) ),
 					$order->get_meta( self::META_INTERNAL_NOTE, true ),
 				)
 			);
@@ -509,6 +567,13 @@ class YKT_Admin {
 			esc_textarea( (string) $order->get_meta( self::META_INTERNAL_NOTE, true ) ),
 			esc_html__( 'Save', 'yiari-campaign-toolkit' )
 		);
+	}
+
+	/**
+	 * Convert stored checkbox flags to an Indonesian admin label.
+	 */
+	private function yes_no_label( string $value ): string {
+		return 'yes' === $value ? __( 'Ya', 'yiari-campaign-toolkit' ) : __( 'Tidak', 'yiari-campaign-toolkit' );
 	}
 
 	/**

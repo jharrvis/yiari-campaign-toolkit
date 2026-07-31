@@ -27,6 +27,7 @@ class YKT_Campaign_Frontend {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cart_assets' ) );
 		add_filter( 'wp_kses_allowed_html', array( $this, 'allow_cart_quantity_input_html' ), 10, 2 );
 		add_filter( 'woocommerce_add_to_cart_fragments', array( $this, 'cart_fragments' ) );
+		add_action( 'template_redirect', array( $this, 'redirect_shop_to_campaign' ) );
 		add_action( 'wp_ajax_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
 		add_action( 'wp_ajax_nopriv_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
 	}
@@ -205,6 +206,25 @@ class YKT_Campaign_Frontend {
 		);
 	}
 
+
+	/**
+	 * Redirect the default WooCommerce shop archive to the campaign landing page.
+	 */
+	public function redirect_shop_to_campaign(): void {
+		if ( is_admin() || wp_doing_ajax() || ! function_exists( 'is_shop' ) || ! is_shop() ) {
+			return;
+		}
+
+		$campaign_page = get_page_by_path( 'campaign' );
+		if ( ! $campaign_page instanceof WP_Post || 'publish' !== $campaign_page->post_status ) {
+			return;
+		}
+
+		wp_safe_redirect( get_permalink( $campaign_page ), 301 );
+		exit;
+	}
+
+
 	/**
 	 * Update the cart icon count after WooCommerce AJAX add-to-cart events.
 	 *
@@ -234,8 +254,9 @@ class YKT_Campaign_Frontend {
 		$is_cart = function_exists( 'is_cart' ) && is_cart();
 		$is_checkout = function_exists( 'is_checkout' ) && is_checkout();
 		$is_account = function_exists( 'is_account_page' ) && is_account_page();
+		$is_product = function_exists( 'is_product' ) && is_product();
 
-		if ( $is_cart || $is_checkout || $is_account ) {
+		if ( $is_cart || $is_checkout || $is_account || $is_product ) {
 			$this->enqueue_assets();
 		}
 	}

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added campaign consent visibility in WooCommerce order admin and campaign CSV export, redirected the default shop archive to the campaign page, and added YIARI-styled single product presentation.
 - Removed WooCommerce's per-option optional markers from the campaign donor reason radio choices while keeping the field optional.
 - Expanded YIARI-styled WooCommerce surfaces across cart, checkout, order received, and my-account pages with consistent tables, forms, notices, navigation, buttons, and responsive layout treatment.
 - Polished the campaign checkout information panel and aligned donor reason radio inputs with their labels, plus light WooCommerce form styling for a more YIARI-consistent checkout/cart experience.

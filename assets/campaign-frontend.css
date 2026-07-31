@@ -1357,3 +1357,170 @@
   }
 }
 
+
+.single-product,
+.single-product .woocommerce {
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+}
+
+.single-product .ct-inner-content,
+.single-product .woocommerce {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1240px;
+  width: min(100%, 1240px);
+}
+
+.single-product .ct-inner-content {
+  padding-left: clamp(18px, 4vw, 32px);
+  padding-right: clamp(18px, 4vw, 32px);
+}
+
+.single-product div.product {
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+}
+
+.single-product div.product div.images,
+.single-product div.product div.summary {
+  float: none;
+  margin: 0;
+  width: auto;
+}
+
+.single-product div.product div.images {
+  background: #f7faf6;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  padding: clamp(16px, 3vw, 28px);
+}
+
+.single-product div.product div.images img {
+  border-radius: 8px;
+}
+
+.single-product div.product .summary {
+  background: #ffffff;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(35, 56, 47, 0.08);
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.single-product div.product .product_title {
+  color: #24382f;
+  font-family: "Baloo 2", "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 0 0 12px;
+}
+
+.single-product div.product p.price,
+.single-product div.product span.price {
+  color: #2f6f4e;
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  margin: 0 0 18px;
+}
+
+.single-product div.product .woocommerce-product-details__short-description {
+  color: #33483e;
+  font-size: 16px;
+  line-height: 1.65;
+  margin-bottom: 22px;
+}
+
+.single-product div.product form.cart {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.single-product div.product form.cart .quantity .qty {
+  background: #ffffff;
+  border: 1px solid #cfd8c8;
+  border-radius: 8px;
+  color: #24382f;
+  font-size: 16px;
+  font-weight: 800;
+  height: 48px;
+  min-width: 82px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.single-product div.product form.cart .single_add_to_cart_button,
+.single-product .button {
+  background: #2f6f4e;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-weight: 800;
+  min-height: 48px;
+  padding: 13px 18px;
+}
+
+.single-product div.product form.cart .single_add_to_cart_button:hover,
+.single-product .button:hover {
+  background: #24583d;
+  color: #ffffff;
+}
+
+.single-product div.product .product_meta,
+.single-product div.product .woocommerce-tabs {
+  color: #33483e;
+  grid-column: 1 / -1;
+}
+
+.single-product div.product .woocommerce-tabs {
+  background: #ffffff;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(35, 56, 47, 0.08);
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li {
+  background: #f3f7f1;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li a {
+  color: #33483e;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li.active {
+  background: #2f6f4e;
+  border-color: #2f6f4e;
+}
+
+.single-product div.product .woocommerce-tabs ul.tabs li.active a {
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .single-product div.product {
+    grid-template-columns: 1fr;
+  }
+}
