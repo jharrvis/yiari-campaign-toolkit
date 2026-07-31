@@ -798,3 +798,141 @@
 .woocommerce-cart .wc-proceed-to-checkout .checkout-button {
   border-radius: 8px;
 }
+
+.woocommerce-checkout #ykt-campaign-fields {
+  background: #ffffff;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(35, 56, 47, 0.08);
+  margin: 24px 0;
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.woocommerce-checkout #ykt-campaign-fields h3 {
+  color: #24382f;
+  font-family: "Baloo 2", "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 18px;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .form-row {
+  margin-bottom: 18px;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .form-row > label,
+.woocommerce-checkout #ykt-campaign-fields .form-row > span > label:first-child {
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .ykt-donor-reason-choice .woocommerce-input-wrapper {
+  background: #f7faf6;
+  border: 1px solid #e0e7da;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px 10px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  padding: 14px;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .ykt-donor-reason-choice input[type="radio"] {
+  accent-color: #2f6f4e;
+  align-self: center;
+  float: none;
+  height: 18px;
+  margin: 0;
+  width: 18px;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .ykt-donor-reason-choice label.radio {
+  align-self: center;
+  color: #24382f;
+  cursor: pointer;
+  display: block;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0;
+  padding: 0;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .ykt-donor-reason-other input.input-text {
+  background: #ffffff;
+  border: 1px solid #cfd8c8;
+  border-radius: 8px;
+  box-shadow: none;
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  min-height: 46px;
+  padding: 10px 13px;
+}
+
+.woocommerce-checkout #ykt-campaign-fields .form-row input[type="checkbox"] {
+  accent-color: #2f6f4e;
+  float: none;
+  margin: 0 8px 0 0;
+  transform: translateY(2px);
+}
+
+.woocommerce-checkout #ykt-campaign-fields .checkbox {
+  color: #33483e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.woocommerce-checkout form.checkout input.input-text,
+.woocommerce-checkout form.checkout textarea,
+.woocommerce-checkout form.checkout select,
+.woocommerce-cart input.input-text,
+.woocommerce-cart select {
+  border: 1px solid #cfd8c8;
+  border-radius: 8px;
+  box-shadow: none;
+  color: #24382f;
+  min-height: 44px;
+}
+
+.woocommerce-checkout form.checkout input.input-text:focus,
+.woocommerce-checkout form.checkout textarea:focus,
+.woocommerce-checkout form.checkout select:focus,
+.woocommerce-cart input.input-text:focus,
+.woocommerce-cart select:focus {
+  border-color: #2f6f4e;
+  box-shadow: 0 0 0 3px rgba(47, 111, 78, 0.14);
+  outline: none;
+}
+
+.woocommerce-checkout #payment,
+.woocommerce-checkout .woocommerce-checkout-review-order-table,
+.woocommerce-cart .cart_totals,
+.woocommerce-cart table.shop_table {
+  border-radius: 8px;
+}
+
+.woocommerce-checkout #place_order,
+.woocommerce-checkout .button,
+.woocommerce-cart .button {
+  border-radius: 8px;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .woocommerce-checkout #ykt-campaign-fields .ykt-donor-reason-choice .woocommerce-input-wrapper {
+    gap: 11px 9px;
+    padding: 12px;
+  }
+
+  .woocommerce-checkout #ykt-campaign-fields .ykt-donor-reason-choice label.radio {
+    font-size: 14px;
+  }
+}
+

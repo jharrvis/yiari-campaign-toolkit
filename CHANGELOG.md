@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Polished the campaign checkout information panel and aligned donor reason radio inputs with their labels, plus light WooCommerce form styling for a more YIARI-consistent checkout/cart experience.
 - Updated the checkout campaign information section to Indonesian copy and replaced the donor reason textarea with radio choices plus a conditional custom reason field.
 - Added automatic KiriminAja drop-off AWB initiation for paid Paket B/MIXED campaign orders, creating the KiriminAja shipping payment record without manual admin package input.
 - Added safeguards for old KiriminAja transactions by recalculating them against the currently enabled courier before auto drop-off AWB creation, without changing the paid WooCommerce order total.
