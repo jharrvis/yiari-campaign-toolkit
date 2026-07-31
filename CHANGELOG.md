@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Removed WooCommerce's per-option optional markers from the campaign donor reason radio choices while keeping the field optional.
 - Expanded YIARI-styled WooCommerce surfaces across cart, checkout, order received, and my-account pages with consistent tables, forms, notices, navigation, buttons, and responsive layout treatment.
 - Polished the campaign checkout information panel and aligned donor reason radio inputs with their labels, plus light WooCommerce form styling for a more YIARI-consistent checkout/cart experience.
 - Updated the checkout campaign information section to Indonesian copy and replaced the donor reason textarea with radio choices plus a conditional custom reason field.

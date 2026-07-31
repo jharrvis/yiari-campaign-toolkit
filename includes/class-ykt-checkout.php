@@ -202,17 +202,7 @@ class YKT_Checkout {
 			$selected_reason = $this->matching_donor_reason_choice( (string) $checkout->get_value( 'donor_reason' ) );
 		}
 
-		woocommerce_form_field(
-			'donor_reason_choice',
-			array(
-				'type'     => 'radio',
-				'class'    => array( 'form-row-wide', 'ykt-donor-reason-choice' ),
-				'label'    => __( 'Apa alasan Anda ingin mendukung buku ini?', 'yiari-campaign-toolkit' ),
-				'options'  => $reason_choices,
-				'required' => false,
-			),
-			$selected_reason
-		);
+		$this->render_donor_reason_radio_field( $reason_choices, $selected_reason );
 
 		woocommerce_form_field(
 			'donor_reason_other',
@@ -325,6 +315,26 @@ class YKT_Checkout {
 		}
 	}
 
+	/**
+	 * Render donor reason radios without WooCommerce's per-option optional marker.
+	 *
+	 * @param array<string, string> $choices Radio choices.
+	 * @param string               $selected Selected choice key.
+	 */
+	private function render_donor_reason_radio_field( array $choices, string $selected ): void {
+		echo '<p class="form-row form-row-wide ykt-donor-reason-choice" id="donor_reason_choice_field">';
+		echo '<span class="ykt-donor-reason-question">' . esc_html__( 'Apa alasan Anda ingin mendukung buku ini?', 'yiari-campaign-toolkit' ) . '</span>';
+		echo '<span class="woocommerce-input-wrapper">';
+
+		foreach ( $choices as $key => $label ) {
+			$field_id = 'donor_reason_choice_' . sanitize_key( $key );
+			echo '<input type="radio" class="input-radio" value="' . esc_attr( $key ) . '" name="donor_reason_choice" id="' . esc_attr( $field_id ) . '" ' . checked( $selected, $key, false ) . ' />';
+			echo '<label for="' . esc_attr( $field_id ) . '" class="radio">' . esc_html( $label ) . '</label>';
+		}
+
+		echo '</span>';
+		echo '</p>';
+	}
 
 	/**
 	 * Available donor reason choices shown on checkout.
