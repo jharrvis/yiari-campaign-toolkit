@@ -36,6 +36,7 @@ class YKT_Order_Status {
 	public function init(): void {
 		add_action( 'init', array( $this, 'register_statuses' ) );
 		add_filter( 'wc_order_statuses', array( $this, 'add_statuses_to_wc' ) );
+		add_filter( 'woocommerce_order_is_paid_statuses', array( $this, 'add_campaign_paid_statuses' ) );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'log_transition' ), 10, 4 );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'advance_paid_campaign_order' ), 20, 4 );
 	}
@@ -132,6 +133,18 @@ class YKT_Order_Status {
 		}
 
 		return $new_statuses;
+	}
+
+	/**
+	 * Let WooCommerce treat post-payment campaign lifecycle statuses as paid.
+	 *
+	 * @param array<int, string> $statuses Paid order statuses without wc- prefix.
+	 * @return array<int, string>
+	 */
+	public function add_campaign_paid_statuses( array $statuses ): array {
+		$campaign_paid_statuses = array( 'paid', 'certificate-sent', 'ready-to-ship', 'shipped', 'delivered', 'impact-sent' );
+
+		return array_values( array_unique( array_merge( $statuses, $campaign_paid_statuses ) ) );
 	}
 
 	/**
