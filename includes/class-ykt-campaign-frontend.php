@@ -22,6 +22,7 @@ class YKT_Campaign_Frontend {
 	public function init(): void {
 		add_shortcode( 'ykt_campaign_landing', array( $this, 'render_landing_shortcode' ) );
 		add_shortcode( 'ykt_campaign_products', array( $this, 'render_products_shortcode' ) );
+		add_shortcode( 'ykt_single_product_campaign', array( $this, 'render_single_product_shortcode' ) );
 		add_shortcode( 'ykt_cart_icon', array( $this, 'render_cart_icon_shortcode' ) );
 		add_action( 'wp_loaded', array( $this, 'handle_campaign_add_to_cart' ), 15 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cart_assets' ) );
@@ -178,6 +179,103 @@ class YKT_Campaign_Frontend {
 	}
 
 	/**
+	 * Render an Oxygen-friendly single campaign product detail section.
+	 *
+	 * @param array<string, mixed> $atts Shortcode attributes.
+	 */
+	public function render_single_product_shortcode( array $atts = array() ): string {
+		$atts = shortcode_atts(
+			array(
+				'product_id' => 0,
+			),
+			$atts,
+			'ykt_single_product_campaign'
+		);
+
+		$this->enqueue_assets();
+
+		$product_id = absint( $atts['product_id'] );
+		if ( ! $product_id && is_singular( 'product' ) ) {
+			$product_id = get_the_ID();
+		}
+
+		$product = $product_id ? wc_get_product( $product_id ) : null;
+		if ( ! $product instanceof WC_Product ) {
+			return '<section class="ykt-single-product"><p>' . esc_html__( 'Produk campaign belum tersedia.', 'yiari-campaign-toolkit' ) . '</p></section>';
+		}
+
+		$package = class_exists( 'YKT_Checkout' ) ? YKT_Checkout::get_product_package_type( $product->get_id() ) : '';
+		$is_package_a = 'A' === $package;
+		$image = wp_get_attachment_image_url( $product->get_image_id(), 'large' );
+		if ( ! $image && $is_package_a ) {
+			$fallback_product_id = wc_get_product_id_by_sku( self::SKU_PACKAGE_B );
+			$fallback_product = $fallback_product_id ? wc_get_product( $fallback_product_id ) : null;
+			$image = $fallback_product instanceof WC_Product ? wp_get_attachment_image_url( $fallback_product->get_image_id(), 'large' ) : '';
+		}
+
+		$eyebrow = $package ? sprintf( 'Paket %s Campaign Buku', $package ) : __( 'Campaign Buku', 'yiari-campaign-toolkit' );
+		$summary = $this->single_product_summary( $package );
+		$benefits = $this->single_product_benefits( $package );
+		$note = $is_package_a
+			? __( 'Paket A sudah termasuk biaya distribusi ke sekolah atau taman baca di Kalimantan Barat, sehingga Anda tidak perlu mengisi alamat pengiriman.', 'yiari-campaign-toolkit' )
+			: __( 'Paket B membutuhkan alamat donor karena satu buku akan dikirim ke alamat Anda. Ongkos kirim dihitung saat checkout.', 'yiari-campaign-toolkit' );
+		$button_label = $is_package_a ? __( 'Traktir Buku Sekarang', 'yiari-campaign-toolkit' ) : __( 'Beli & Traktir Sekarang', 'yiari-campaign-toolkit' );
+		$description = wpautop( wp_kses_post( $product->get_description() ) );
+
+		ob_start();
+		?>
+		<section class="ykt-single-product" aria-labelledby="ykt-single-product-title">
+			<div class="ykt-single-product__media">
+				<?php if ( $image ) : ?>
+					<img src="<?php echo esc_url( $image ); ?>" alt="<?php echo esc_attr( $product->get_name() ); ?>" loading="eager">
+				<?php endif; ?>
+				<?php if ( $package ) : ?>
+					<span class="ykt-single-product__badge"><?php echo esc_html( 'Paket ' . $package ); ?></span>
+				<?php endif; ?>
+			</div>
+
+			<div class="ykt-single-product__summary">
+				<p class="ykt-single-product__eyebrow"><?php echo esc_html( $eyebrow ); ?></p>
+				<h1 id="ykt-single-product-title"><?php echo esc_html( $product->get_name() ); ?></h1>
+				<p class="ykt-single-product__lead"><?php echo esc_html( $summary ); ?></p>
+				<div class="ykt-single-product__price"><?php echo wp_kses_post( $product->get_price_html() ); ?></div>
+
+				<ul class="ykt-single-product__benefits">
+					<?php foreach ( $benefits as $benefit ) : ?>
+						<li><?php echo esc_html( $benefit ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+
+				<p class="ykt-single-product__note"><?php echo esc_html( $note ); ?></p>
+
+				<form class="ykt-single-product__purchase" method="get" action="<?php echo esc_url( wc_get_checkout_url() ); ?>">
+					<input type="hidden" name="ykt_campaign_add_to_cart" value="<?php echo esc_attr( (string) $product->get_id() ); ?>">
+					<label>
+						<span><?php echo esc_html__( 'Jumlah', 'yiari-campaign-toolkit' ); ?></span>
+						<input type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric">
+					</label>
+					<button type="submit"><?php echo esc_html( $button_label ); ?></button>
+				</form>
+
+				<div class="ykt-single-product__links">
+					<a href="<?php echo esc_url( home_url( '/campaign/' ) ); ?>"><?php echo esc_html__( 'Kembali ke halaman campaign', 'yiari-campaign-toolkit' ); ?></a>
+					<a href="<?php echo esc_url( wc_get_cart_url() ); ?>"><?php echo esc_html__( 'Lihat keranjang', 'yiari-campaign-toolkit' ); ?></a>
+				</div>
+			</div>
+
+			<?php if ( $description ) : ?>
+				<div class="ykt-single-product__description">
+					<h2><?php echo esc_html__( 'Detail Paket', 'yiari-campaign-toolkit' ); ?></h2>
+					<?php echo $description; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</div>
+			<?php endif; ?>
+		</section>
+		<?php
+
+		return (string) ob_get_clean();
+	}
+
+	/**
 	 * Render a menu/header friendly cart icon.
 	 *
 	 * @param array<string, mixed> $atts Shortcode attributes.
@@ -206,7 +304,6 @@ class YKT_Campaign_Frontend {
 		);
 	}
 
-
 	/**
 	 * Redirect the default WooCommerce shop archive to the campaign landing page.
 	 */
@@ -223,7 +320,6 @@ class YKT_Campaign_Frontend {
 		wp_safe_redirect( get_permalink( $campaign_page ), 301 );
 		exit;
 	}
-
 
 	/**
 	 * Update the cart icon count after WooCommerce AJAX add-to-cart events.
@@ -347,6 +443,52 @@ class YKT_Campaign_Frontend {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Return concise package-specific copy for the single product template.
+	 */
+	private function single_product_summary( string $package ): string {
+		if ( 'A' === $package ) {
+			return __( 'Dukung pengiriman buku edukasi konservasi untuk anak-anak di sekitar habitat orangutan.', 'yiari-campaign-toolkit' );
+		}
+
+		if ( 'B' === $package ) {
+			return __( 'Dapatkan satu buku untuk Anda dan bantu satu buku lainnya sampai ke anak-anak di Kalimantan Barat.', 'yiari-campaign-toolkit' );
+		}
+
+		return __( 'Dukung campaign buku Karmila & Gito bersama YIARI.', 'yiari-campaign-toolkit' );
+	}
+
+	/**
+	 * Return package-specific benefit bullets for the single product template.
+	 *
+	 * @return array<int, string>
+	 */
+	private function single_product_benefits( string $package ): array {
+		if ( 'A' === $package ) {
+			return array(
+				__( 'Buku didistribusikan untuk anak di Kalimantan Barat', 'yiari-campaign-toolkit' ),
+				__( 'Biaya distribusi ke sekolah sudah termasuk', 'yiari-campaign-toolkit' ),
+				__( 'Sertifikat digital otomatis setelah pembayaran berhasil', 'yiari-campaign-toolkit' ),
+				__( 'Update perkembangan campaign dari YIARI', 'yiari-campaign-toolkit' ),
+			);
+		}
+
+		if ( 'B' === $package ) {
+			return array(
+				__( 'Satu buku dikirim ke alamat donor', 'yiari-campaign-toolkit' ),
+				__( 'Satu buku didistribusikan untuk anak di Kalimantan Barat', 'yiari-campaign-toolkit' ),
+				__( 'Ongkos kirim dihitung otomatis di checkout', 'yiari-campaign-toolkit' ),
+				__( 'Sertifikat digital dan link tracking pesanan', 'yiari-campaign-toolkit' ),
+			);
+		}
+
+		return array(
+			__( 'Bagian dari campaign buku Karmila & Gito', 'yiari-campaign-toolkit' ),
+			__( 'Pembayaran diproses melalui WooCommerce dan Midtrans', 'yiari-campaign-toolkit' ),
+			__( 'Konfirmasi email dikirim otomatis setelah pembayaran berhasil', 'yiari-campaign-toolkit' ),
+		);
 	}
 
 	/**

@@ -1524,3 +1524,243 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.ykt-single-product {
+  color: #24382f;
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  margin: 0 auto;
+  max-width: 1240px;
+  padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 32px);
+  width: min(100%, 1240px);
+}
+
+.ykt-single-product__media {
+  align-self: start;
+  background: #f7faf6;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  min-height: 360px;
+  overflow: hidden;
+  padding: clamp(18px, 3vw, 34px);
+  position: relative;
+}
+
+.ykt-single-product__media img {
+  aspect-ratio: 4 / 5;
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  object-fit: contain;
+  width: 100%;
+}
+
+.ykt-single-product__badge {
+  background: #ba7a2b;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  left: 18px;
+  letter-spacing: 0;
+  padding: 8px 12px;
+  position: absolute;
+  top: 18px;
+}
+
+.ykt-single-product__summary {
+  align-self: start;
+  background: #ffffff;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(35, 56, 47, 0.08);
+  padding: clamp(22px, 3.5vw, 36px);
+}
+
+.ykt-single-product__eyebrow {
+  color: #ba7a2b;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.ykt-single-product h1 {
+  color: #24382f;
+  font-family: "Baloo 2", "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(34px, 4.5vw, 54px);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.06;
+  margin: 0 0 14px;
+}
+
+.ykt-single-product__lead {
+  color: #33483e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.ykt-single-product__price {
+  color: #2f6f4e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.ykt-single-product__benefits {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.ykt-single-product__benefits li {
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  padding-left: 26px;
+  position: relative;
+}
+
+.ykt-single-product__benefits li::before {
+  background: #2f6f4e;
+  border-radius: 999px;
+  content: "";
+  height: 9px;
+  left: 2px;
+  position: absolute;
+  top: 7px;
+  width: 9px;
+}
+
+.ykt-single-product__note {
+  background: #f3f7f1;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  color: #33483e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+}
+
+.ykt-single-product__purchase {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 112px minmax(0, 1fr);
+  margin-bottom: 18px;
+}
+
+.ykt-single-product__purchase label {
+  display: grid;
+  gap: 6px;
+}
+
+.ykt-single-product__purchase label span {
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ykt-single-product__purchase input[type="number"] {
+  background: #ffffff;
+  border: 1px solid #cfd8c8;
+  border-radius: 8px;
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  height: 52px;
+  padding: 0 12px;
+  text-align: center;
+  width: 100%;
+}
+
+.ykt-single-product__purchase button {
+  background: #2f6f4e;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 14px 18px;
+  width: 100%;
+}
+
+.ykt-single-product__purchase button:hover {
+  background: #24583d;
+}
+
+.ykt-single-product__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.ykt-single-product__links a {
+  color: #2f6f4e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ykt-single-product__links a:hover {
+  color: #ba7a2b;
+}
+
+.ykt-single-product__description {
+  background: #ffffff;
+  border: 1px solid #d8dfd2;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(35, 56, 47, 0.08);
+  color: #33483e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  grid-column: 1 / -1;
+  line-height: 1.7;
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.ykt-single-product__description h2 {
+  color: #24382f;
+  font-family: "Baloo 2", "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.15;
+  margin: 0 0 14px;
+}
+
+.ykt-single-product__description p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .ykt-single-product {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .ykt-single-product__purchase {
+    grid-template-columns: 1fr;
+  }
+}

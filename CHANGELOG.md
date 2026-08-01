@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added the [ykt_single_product_campaign] Oxygen shortcode for campaign product detail pages with package-specific copy, quantity checkout form, and responsive YIARI styling.
 - Updated WooCommerce campaign email contact address to media@yiari.or.id and added Paket B tracking plus order status links to campaign customer emails.
 - Registered campaign post-payment statuses as WooCommerce paid statuses so paid campaign orders remain recognized as paid after certificate and shipping lifecycle transitions.
 - Added campaign consent visibility in WooCommerce order admin and campaign CSV export, redirected the default shop archive to the campaign page, and added YIARI-styled single product presentation.
