@@ -336,12 +336,17 @@
 
 .ykt-cart-icon {
   align-items: center;
-  color: inherit;
+  color: #ffffff;
   display: inline-flex;
-  gap: 8px;
   line-height: 1;
+  min-height: 32px;
+  min-width: 32px;
   position: relative;
   text-decoration: none;
+}
+
+.ykt-cart-icon:hover {
+  color: #ffffff;
 }
 
 .ykt-cart-icon__svg {
@@ -356,22 +361,216 @@
   width: 100%;
 }
 
-.ykt-cart-icon__label {
-  font-size: 0.95rem;
-}
-
 .ykt-cart-icon__count {
   align-items: center;
   background: var(--ykt-accent);
+  border: 2px solid #ffffff;
   border-radius: 999px;
   color: #1d1d1d;
   display: inline-flex;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  height: 20px;
+  height: 19px;
   justify-content: center;
-  min-width: 20px;
-  padding: 0 6px;
+  min-width: 19px;
+  padding: 0 5px;
+  position: absolute;
+  right: -8px;
+  top: -7px;
+}
+
+.ykt-cart-icon__count--empty {
+  display: none;
+}
+
+
+.ykt-cart-drawer {
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 180ms ease;
+  z-index: 999999;
+}
+
+.ykt-cart-drawer.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ykt-cart-drawer__overlay {
+  background: rgba(20, 32, 27, 0.46);
+  inset: 0;
+  position: absolute;
+}
+
+.ykt-cart-drawer__panel {
+  background: #ffffff;
+  box-shadow: -18px 0 42px rgba(20, 32, 27, 0.18);
+  color: #24382f;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  margin-left: auto;
+  max-width: min(92vw, 420px);
+  position: relative;
+  transform: translateX(100%);
+  transition: transform 220ms ease;
+  width: 420px;
+}
+
+.ykt-cart-drawer.is-open .ykt-cart-drawer__panel {
+  transform: translateX(0);
+}
+
+.ykt-cart-drawer__header {
+  align-items: center;
+  border-bottom: 1px solid #d8dfd2;
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.ykt-cart-drawer__header strong {
+  color: #24382f;
+  font-family: "Baloo 2", "Nunito Sans", Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ykt-cart-drawer__close {
+  align-items: center;
+  background: #f3f7f1;
+  border: 1px solid #d8dfd2;
+  border-radius: 999px;
+  color: #24382f;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 24px;
+  height: 36px;
+  justify-content: center;
+  line-height: 1;
+  width: 36px;
+}
+
+.ykt-cart-drawer__body {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  padding: 0;
+}
+
+.ykt-cart-drawer__items {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.ykt-cart-drawer__item {
+  border-bottom: 1px solid #e6ece1;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  padding: 16px 20px;
+}
+
+.ykt-cart-drawer__thumb img {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 72px;
+}
+
+.ykt-cart-drawer__item-content {
+  display: grid;
+  gap: 6px;
+}
+
+.ykt-cart-drawer__item-content strong {
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.ykt-cart-drawer__item-content span {
+  color: #33483e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ykt-cart-drawer__summary,
+.ykt-cart-drawer__empty {
+  border-top: 1px solid #d8dfd2;
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px 22px;
+}
+
+.ykt-cart-drawer__summary > div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ykt-cart-drawer__summary span,
+.ykt-cart-drawer__empty p {
+  color: #33483e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 14px;
+  margin: 0;
+}
+
+.ykt-cart-drawer__summary strong {
+  color: #24382f;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.ykt-cart-drawer__button {
+  background: #2f6f4e;
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 46px;
+  padding: 13px 16px;
+  text-decoration: none;
+}
+
+.ykt-cart-drawer__button:hover {
+  background: #24583d;
+  color: #ffffff;
+}
+
+.ykt-cart-drawer__link {
+  color: #2f6f4e;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ykt-cart-drawer__link:hover {
+  color: #ba7a2b;
+}
+
+html.ykt-cart-drawer-open,
+html.ykt-cart-drawer-open body {
+  overflow: hidden;
 }
 
 @media (max-width: 980px) {

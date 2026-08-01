@@ -31,6 +31,8 @@ class YKT_Campaign_Frontend {
 		add_action( 'template_redirect', array( $this, 'redirect_shop_to_campaign' ) );
 		add_action( 'wp_ajax_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
 		add_action( 'wp_ajax_nopriv_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
+		add_action( 'wp_ajax_ykt_cart_panel', array( $this, 'ajax_cart_panel' ) );
+		add_action( 'wp_ajax_nopriv_ykt_cart_panel', array( $this, 'ajax_cart_panel' ) );
 	}
 
 	/**
@@ -294,13 +296,17 @@ class YKT_Campaign_Frontend {
 
 		$url = '' !== $atts['url'] ? esc_url( $atts['url'] ) : wc_get_cart_url();
 
+		$count = $this->cart_count();
+		$count_class = $count > 0 ? 'ykt-cart-icon__count' : 'ykt-cart-icon__count ykt-cart-icon__count--empty';
+
 		return sprintf(
-			'<a class="ykt-cart-icon" href="%1$s" aria-label="%2$s"><span class="ykt-cart-icon__svg" aria-hidden="true">%3$s</span><span class="ykt-cart-icon__label">%4$s</span><span class="ykt-cart-icon__count">%5$d</span></a>',
+			'<a class="ykt-cart-icon" href="%1$s" role="button" aria-label="%2$s" aria-haspopup="dialog" aria-expanded="false"><span class="ykt-cart-icon__svg" aria-hidden="true">%3$s</span><span class="%4$s">%5$d</span></a>%6$s',
 			esc_url( $url ),
 			esc_attr( $atts['label'] ),
 			$this->cart_svg(),
-			esc_html( $atts['label'] ),
-			$this->cart_count()
+			esc_attr( $count_class ),
+			$count,
+			$this->render_cart_panel()
 		);
 	}
 
@@ -328,7 +334,9 @@ class YKT_Campaign_Frontend {
 	 * @return array<string, string>
 	 */
 	public function cart_fragments( array $fragments ): array {
-		$fragments['.ykt-cart-icon__count'] = '<span class="ykt-cart-icon__count">' . absint( $this->cart_count() ) . '</span>';
+		$count = $this->cart_count();
+		$count_class = $count > 0 ? 'ykt-cart-icon__count' : 'ykt-cart-icon__count ykt-cart-icon__count--empty';
+		$fragments['.ykt-cart-icon__count'] = '<span class="' . esc_attr( $count_class ) . '">' . absint( $count ) . '</span>';
 		return $fragments;
 	}
 
@@ -341,6 +349,90 @@ class YKT_Campaign_Frontend {
 				'count' => $this->cart_count(),
 			)
 		);
+	}
+
+
+	/**
+	 * Return cart panel HTML for AJAX refreshes.
+	 */
+	public function ajax_cart_panel(): void {
+		wp_send_json_success(
+			array(
+				'count' => $this->cart_count(),
+				'html'  => $this->cart_panel_body_html(),
+			)
+		);
+	}
+
+	/**
+	 * Render the off-canvas cart panel shell once per shortcode instance.
+	 */
+	private function render_cart_panel(): string {
+		static $rendered = false;
+		if ( $rendered ) {
+			return '';
+		}
+		$rendered = true;
+
+		ob_start();
+		?>
+		<div class="ykt-cart-drawer" aria-hidden="true">
+			<div class="ykt-cart-drawer__overlay" data-ykt-cart-close></div>
+			<aside class="ykt-cart-drawer__panel" role="dialog" aria-modal="true" aria-label="<?php echo esc_attr__( 'Keranjang belanja', 'yiari-campaign-toolkit' ); ?>">
+				<header class="ykt-cart-drawer__header">
+					<strong><?php echo esc_html__( 'Keranjang', 'yiari-campaign-toolkit' ); ?></strong>
+					<button type="button" class="ykt-cart-drawer__close" data-ykt-cart-close aria-label="<?php echo esc_attr__( 'Tutup keranjang', 'yiari-campaign-toolkit' ); ?>">&times;</button>
+				</header>
+				<div class="ykt-cart-drawer__body">
+					<?php echo $this->cart_panel_body_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</div>
+			</aside>
+		</div>
+		<?php
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Render current cart items for the drawer body.
+	 */
+	private function cart_panel_body_html(): string {
+		if ( function_exists( 'WC' ) && null === WC()->cart && function_exists( 'wc_load_cart' ) ) {
+			wc_load_cart();
+		}
+
+		if ( ! function_exists( 'WC' ) || ! WC()->cart || WC()->cart->is_empty() ) {
+			return '<div class="ykt-cart-drawer__empty"><p>' . esc_html__( 'Keranjang masih kosong.', 'yiari-campaign-toolkit' ) . '</p><a class="ykt-cart-drawer__button" href="' . esc_url( home_url( '/campaign/' ) ) . '">' . esc_html__( 'Pilih Paket', 'yiari-campaign-toolkit' ) . '</a></div>';
+		}
+
+		ob_start();
+		?>
+		<ul class="ykt-cart-drawer__items">
+			<?php foreach ( WC()->cart->get_cart() as $cart_item ) : ?>
+				<?php
+				$product = $cart_item['data'] ?? null;
+				if ( ! $product instanceof WC_Product ) {
+					continue;
+				}
+				$thumbnail = $product->get_image( 'woocommerce_thumbnail' );
+				?>
+				<li class="ykt-cart-drawer__item">
+					<div class="ykt-cart-drawer__thumb"><?php echo wp_kses_post( $thumbnail ); ?></div>
+					<div class="ykt-cart-drawer__item-content">
+						<strong><?php echo esc_html( $product->get_name() ); ?></strong>
+						<span><?php echo esc_html( sprintf( '%d x', absint( $cart_item['quantity'] ?? 0 ) ) ); ?> <?php echo wp_kses_post( WC()->cart->get_product_price( $product ) ); ?></span>
+					</div>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<div class="ykt-cart-drawer__summary">
+			<div><span><?php echo esc_html__( 'Subtotal', 'yiari-campaign-toolkit' ); ?></span><strong><?php echo wp_kses_post( WC()->cart->get_cart_subtotal() ); ?></strong></div>
+			<a class="ykt-cart-drawer__button" href="<?php echo esc_url( wc_get_checkout_url() ); ?>"><?php echo esc_html__( 'Checkout', 'yiari-campaign-toolkit' ); ?></a>
+			<a class="ykt-cart-drawer__link" href="<?php echo esc_url( wc_get_cart_url() ); ?>"><?php echo esc_html__( 'Lihat Keranjang', 'yiari-campaign-toolkit' ); ?></a>
+		</div>
+		<?php
+
+		return (string) ob_get_clean();
 	}
 
 	/**
