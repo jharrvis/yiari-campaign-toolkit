@@ -29,6 +29,7 @@ class YKT_Campaign_Frontend {
 		add_filter( 'wp_kses_allowed_html', array( $this, 'allow_cart_quantity_input_html' ), 10, 2 );
 		add_filter( 'woocommerce_add_to_cart_fragments', array( $this, 'cart_fragments' ) );
 		add_action( 'template_redirect', array( $this, 'redirect_shop_to_campaign' ) );
+		add_filter( 'redirect_canonical', array( $this, 'preserve_oxygen_builder_url' ), 10, 2 );
 		add_action( 'wp_ajax_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
 		add_action( 'wp_ajax_nopriv_ykt_cart_count', array( $this, 'ajax_cart_count' ) );
 		add_action( 'wp_ajax_ykt_cart_panel', array( $this, 'ajax_cart_panel' ) );
@@ -314,7 +315,7 @@ class YKT_Campaign_Frontend {
 	 * Redirect the default WooCommerce shop archive to the campaign landing page.
 	 */
 	public function redirect_shop_to_campaign(): void {
-		if ( is_admin() || wp_doing_ajax() || ! function_exists( 'is_shop' ) || ! is_shop() ) {
+		if ( is_admin() || wp_doing_ajax() || $this->is_oxygen_builder_request() || ! function_exists( 'is_shop' ) || ! is_shop() ) {
 			return;
 		}
 
@@ -325,6 +326,33 @@ class YKT_Campaign_Frontend {
 
 		wp_safe_redirect( get_permalink( $campaign_page ), 301 );
 		exit;
+	}
+
+
+	/**
+	 * Prevent WordPress canonical redirects from stripping Oxygen Builder query args.
+	 *
+	 * @param string|false $redirect_url  Canonical redirect URL.
+	 * @param string       $requested_url Requested URL.
+	 * @return string|false
+	 */
+	public function preserve_oxygen_builder_url( $redirect_url, string $requested_url ) {
+		unset( $requested_url );
+
+		return $this->is_oxygen_builder_request() ? false : $redirect_url;
+	}
+
+	/**
+	 * Detect Oxygen Builder edit/iframe requests that must keep their query string.
+	 */
+	private function is_oxygen_builder_request(): bool {
+		foreach ( array( 'ct_builder', 'ct_inner', 'oxygen_iframe' ) as $key ) {
+			if ( isset( $_GET[ $key ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

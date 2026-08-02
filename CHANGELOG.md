@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Preserved Oxygen Builder query-string requests by bypassing canonical and shop redirects for builder edit or iframe URLs.
 - Fixed the empty cart drawer action button so it no longer stretches vertically across the drawer panel.
 - Standardized campaign plugin button styling to YIARI light blue and reduced the empty cart drawer action button size.
 - Updated the [ykt_cart_icon] header shortcode to render a white icon-only cart trigger with conditional item badge and an AJAX right-side cart drawer.
