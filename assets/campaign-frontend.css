@@ -178,6 +178,27 @@
   min-width: 0;
 }
 
+
+.ykt-book-counter {
+  align-items: baseline;
+  color: var(--ykt-ink, #24382f);
+  display: flex;
+  flex-wrap: wrap;
+  font-family: "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(18px, 2.4vw, 28px);
+  font-weight: 700;
+  gap: 6px;
+  line-height: 1.25;
+}
+
+.ykt-book-counter strong {
+  color: var(--ykt-button, #39a9dc);
+  font-family: "Baloo 2", "Nunito Sans", Arial, sans-serif;
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 700;
+  line-height: 1;
+}
+
 .ykt-campaign__impact {
   display: grid;
   gap: 16px;

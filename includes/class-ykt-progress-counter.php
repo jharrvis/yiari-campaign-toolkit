@@ -22,6 +22,7 @@ class YKT_Progress_Counter {
 	 */
 	public function init(): void {
 		add_shortcode( 'campaign_progress', array( $this, 'render_shortcode' ) );
+		add_shortcode( 'ykt_book_counter', array( $this, 'render_book_counter_shortcode' ) );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'invalidate_cache_on_status_change' ), 10, 4 );
 		add_action( 'wp_ajax_ykt_campaign_progress', array( $this, 'ajax_progress' ) );
 		add_action( 'wp_ajax_nopriv_ykt_campaign_progress', array( $this, 'ajax_progress' ) );
@@ -72,14 +73,7 @@ class YKT_Progress_Counter {
 		$target = absint( $atts['target'] );
 		$data   = $this->progress_payload( $target );
 
-		wp_enqueue_script( 'ykt-progress', YKT_PLUGIN_URL . 'assets/progress.js', array(), YKT_VERSION, true );
-		wp_localize_script(
-			'ykt-progress',
-			'yktProgress',
-			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			)
-		);
+		$this->enqueue_progress_script();
 
 		return sprintf(
 			'<div class="ykt-progress" data-target="%1$d"><div class="ykt-progress__stats"><span><strong data-ykt-books>%2$s</strong> %3$s</span><span><strong data-ykt-donors>%4$s</strong> %5$s</span><span><strong data-ykt-percent>%6$s%%</strong></span></div><div class="ykt-progress__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="%7$d"><span data-ykt-bar style="width:%8$d%%"></span></div></div>',
@@ -91,6 +85,35 @@ class YKT_Progress_Counter {
 			esc_html( (string) $data['percentage'] ),
 			absint( $data['percentage'] ),
 			absint( $data['percentage'] )
+		);
+	}
+
+	/**
+	 * Render a concise Indonesian book counter for Oxygen/page builder placement.
+	 *
+	 * @param array<string, mixed> $atts Shortcode attributes.
+	 */
+	public function render_book_counter_shortcode( array $atts = array() ): string {
+		$atts = shortcode_atts(
+			array(
+				'target' => 1000,
+			),
+			$atts,
+			'ykt_book_counter'
+		);
+
+		$target = max( 1, absint( $atts['target'] ) );
+		$data   = $this->progress_payload( $target );
+
+		$this->enqueue_progress_script();
+
+		return sprintf(
+			'<div class="ykt-book-counter" data-target="%1$d"><strong data-ykt-books>%2$s</strong> <span>%3$s</span> <strong data-ykt-target>%4$s</strong> <span>%5$s</span></div>',
+			$target,
+			esc_html( number_format_i18n( (int) $data['books_funded'] ) ),
+			esc_html__( 'dari', 'yiari-campaign-toolkit' ),
+			esc_html( number_format_i18n( $target ) ),
+			esc_html__( 'buku telah terkumpul', 'yiari-campaign-toolkit' )
 		);
 	}
 
@@ -109,6 +132,20 @@ class YKT_Progress_Counter {
 			'donor_count'  => (int) $stats['donor_count'],
 			'target'       => $target,
 			'percentage'   => $percentage,
+		);
+	}
+
+	/**
+	 * Load progress refresh script once for progress/counter shortcodes.
+	 */
+	private function enqueue_progress_script(): void {
+		wp_enqueue_script( 'ykt-progress', YKT_PLUGIN_URL . 'assets/progress.js', array(), YKT_VERSION, true );
+		wp_localize_script(
+			'ykt-progress',
+			'yktProgress',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			)
 		);
 	}
 

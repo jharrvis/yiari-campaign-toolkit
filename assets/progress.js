@@ -29,6 +29,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.ykt-progress').forEach(refresh);
+    document.querySelectorAll('.ykt-progress, .ykt-book-counter').forEach(refresh);
   });
 })();

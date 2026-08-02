@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added the [ykt_book_counter target="1000"] shortcode for Indonesian campaign book totals with AJAX refresh support.
 - Preserved Oxygen Builder query-string requests by bypassing canonical and shop redirects for builder edit or iframe URLs.
 - Fixed the empty cart drawer action button so it no longer stretches vertically across the drawer panel.
 - Standardized campaign plugin button styling to YIARI light blue and reduced the empty cart drawer action button size.
