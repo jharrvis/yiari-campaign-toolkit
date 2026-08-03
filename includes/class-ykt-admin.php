@@ -44,6 +44,7 @@ class YKT_Admin {
 		add_filter( 'bulk_actions-woocommerce_page_wc-orders', array( $this, 'register_hpos_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', array( $this, 'handle_hpos_bulk_actions' ), 10, 3 );
 		add_action( 'admin_notices', array( $this, 'render_bulk_action_notice' ) );
+		add_action( 'admin_menu', array( $this, 'register_campaign_report_page' ) );
 
 		add_action( 'add_meta_boxes', array( $this, 'add_status_history_meta_box' ) );
 		add_action( 'add_meta_boxes', array( $this, 'add_campaign_information_meta_box' ) );
@@ -53,6 +54,7 @@ class YKT_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'wp_ajax_ykt_save_internal_note', array( $this, 'ajax_save_internal_note' ) );
 		add_action( 'admin_post_ykt_export_campaign_orders', array( $this, 'export_campaign_orders' ) );
+		add_action( 'admin_post_ykt_export_campaign_report', array( $this, 'export_campaign_report' ) );
 	}
 
 	/**
@@ -254,6 +256,150 @@ class YKT_Admin {
 			$count
 		);
 		echo '</p></div>';
+	}
+
+	/**
+	 * Register the campaign report under WooCommerce.
+	 */
+	public function register_campaign_report_page(): void {
+		add_submenu_page(
+			'woocommerce',
+			__( 'Campaign Report', 'yiari-campaign-toolkit' ),
+			__( 'Campaign Report', 'yiari-campaign-toolkit' ),
+			'manage_woocommerce',
+			'ykt-campaign-report',
+			array( $this, 'render_campaign_report_page' )
+		);
+	}
+
+	/**
+	 * Render campaign reporting dashboard.
+	 */
+	public function render_campaign_report_page(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'yiari-campaign-toolkit' ) );
+		}
+
+		$filters = $this->report_filters_from_request();
+		$orders  = $this->campaign_report_orders( $filters );
+		$summary = $this->campaign_report_summary( $orders );
+		$export_url = wp_nonce_url(
+			add_query_arg(
+				array_merge(
+					array( 'action' => 'ykt_export_campaign_report' ),
+					$filters
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'ykt_export_campaign_report'
+		);
+		?>
+		<div class="wrap ykt-report-page">
+			<h1><?php echo esc_html__( 'YIARI Campaign Report', 'yiari-campaign-toolkit' ); ?></h1>
+			<p><?php echo esc_html__( 'Ringkasan donasi buku, pembelian Paket B, transaksi campaign, dan data donor.', 'yiari-campaign-toolkit' ); ?></p>
+
+			<form method="get" class="ykt-report-filter">
+				<input type="hidden" name="page" value="ykt-campaign-report">
+				<label>
+					<?php echo esc_html__( 'Dari tanggal', 'yiari-campaign-toolkit' ); ?>
+					<input type="date" name="date_from" value="<?php echo esc_attr( $filters['date_from'] ); ?>">
+				</label>
+				<label>
+					<?php echo esc_html__( 'Sampai tanggal', 'yiari-campaign-toolkit' ); ?>
+					<input type="date" name="date_to" value="<?php echo esc_attr( $filters['date_to'] ); ?>">
+				</label>
+				<label>
+					<?php echo esc_html__( 'Paket', 'yiari-campaign-toolkit' ); ?>
+					<select name="package">
+						<option value=""><?php echo esc_html__( 'Semua paket', 'yiari-campaign-toolkit' ); ?></option>
+						<?php foreach ( array( 'A', 'B', 'MIXED' ) as $package ) : ?>
+							<option value="<?php echo esc_attr( $package ); ?>" <?php selected( $filters['package'], $package ); ?>><?php echo esc_html( 'Paket ' . $package ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<label>
+					<?php echo esc_html__( 'Status', 'yiari-campaign-toolkit' ); ?>
+					<select name="status">
+						<option value="paid_or_later" <?php selected( $filters['status'], 'paid_or_later' ); ?>><?php echo esc_html__( 'Paid dan setelahnya', 'yiari-campaign-toolkit' ); ?></option>
+						<option value="all" <?php selected( $filters['status'], 'all' ); ?>><?php echo esc_html__( 'Semua status campaign', 'yiari-campaign-toolkit' ); ?></option>
+						<?php foreach ( YKT_Order_Status::statuses() as $status => $label ) : ?>
+							<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $filters['status'], $status ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<button type="submit" class="button button-primary"><?php echo esc_html__( 'Filter', 'yiari-campaign-toolkit' ); ?></button>
+				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=ykt-campaign-report' ) ); ?>"><?php echo esc_html__( 'Reset', 'yiari-campaign-toolkit' ); ?></a>
+				<a class="button button-secondary" href="<?php echo esc_url( $export_url ); ?>"><?php echo esc_html__( 'Download CSV / Excel', 'yiari-campaign-toolkit' ); ?></a>
+			</form>
+
+			<style>
+				.ykt-report-filter{align-items:end;background:#fff;border:1px solid #dcdcde;display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;padding:14px}.ykt-report-filter label{display:grid;gap:5px;font-weight:600}.ykt-report-cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:18px 0}.ykt-report-card{background:#fff;border:1px solid #dcdcde;border-left:4px solid #39a9dc;padding:14px}.ykt-report-card strong{display:block;font-size:26px;line-height:1.15}.ykt-report-card span{color:#50575e}.ykt-report-table{margin-top:18px}.ykt-report-table td,.ykt-report-table th{vertical-align:top}.ykt-report-muted{color:#646970}
+			</style>
+
+			<div class="ykt-report-cards">
+				<?php foreach ( $this->campaign_report_cards( $summary ) as $card ) : ?>
+					<div class="ykt-report-card"><strong><?php echo esc_html( $card['value'] ); ?></strong><span><?php echo esc_html( $card['label'] ); ?></span></div>
+				<?php endforeach; ?>
+			</div>
+
+			<h2><?php echo esc_html__( 'Data Donatur dan Order', 'yiari-campaign-toolkit' ); ?></h2>
+			<table class="widefat striped ykt-report-table">
+				<thead>
+					<tr>
+						<th><?php echo esc_html__( 'Order', 'yiari-campaign-toolkit' ); ?></th>
+						<th><?php echo esc_html__( 'Donatur', 'yiari-campaign-toolkit' ); ?></th>
+						<th><?php echo esc_html__( 'Paket / Buku', 'yiari-campaign-toolkit' ); ?></th>
+						<th><?php echo esc_html__( 'Total', 'yiari-campaign-toolkit' ); ?></th>
+						<th><?php echo esc_html__( 'Status', 'yiari-campaign-toolkit' ); ?></th>
+						<th><?php echo esc_html__( 'Sertifikat / Resi', 'yiari-campaign-toolkit' ); ?></th>
+						<th><?php echo esc_html__( 'Consent', 'yiari-campaign-toolkit' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php if ( empty( $orders ) ) : ?>
+						<tr><td colspan="7"><?php echo esc_html__( 'Tidak ada data campaign sesuai filter.', 'yiari-campaign-toolkit' ); ?></td></tr>
+					<?php endif; ?>
+					<?php foreach ( $orders as $order ) : ?>
+						<?php $row = $this->campaign_report_row( $order ); ?>
+						<tr>
+							<td><a href="<?php echo esc_url( $order->get_edit_order_url() ); ?>">#<?php echo esc_html( $order->get_order_number() ); ?></a><br><span class="ykt-report-muted"><?php echo esc_html( $row['date'] ); ?></span></td>
+							<td><?php echo esc_html( $row['name'] ); ?><br><a href="mailto:<?php echo esc_attr( $row['email'] ); ?>"><?php echo esc_html( $row['email'] ); ?></a><br><?php echo esc_html( $row['phone'] ); ?></td>
+							<td><?php echo esc_html( $row['package'] ); ?><br><?php echo esc_html( sprintf( 'Donasi: %d buku, Pembelian: %d buku', $row['donated_books'], $row['purchased_books'] ) ); ?><br><span class="ykt-report-muted"><?php echo esc_html( $row['items'] ); ?></span></td>
+							<td><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></td>
+							<td><?php echo esc_html( $row['status_label'] ); ?><br><span class="ykt-report-muted"><?php echo esc_html( $row['payment_method'] ); ?></span></td>
+							<td><?php echo esc_html( $row['certificate'] ?: '-' ); ?><br><?php echo esc_html( $row['awb'] ?: '-' ); ?><?php if ( $row['tracking_url'] ) : ?><br><a href="<?php echo esc_url( $row['tracking_url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html__( 'Tracking', 'yiari-campaign-toolkit' ); ?></a><?php endif; ?></td>
+							<td><?php echo esc_html( 'Campaign: ' . $row['consent_updates'] ); ?><br><?php echo esc_html( 'Info YIARI: ' . $row['consent_yiari'] ); ?><br><?php echo esc_html( 'Testimoni: ' . $row['consent_testimonial'] ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Export campaign report rows as CSV for Excel.
+	 */
+	public function export_campaign_report(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'yiari-campaign-toolkit' ) );
+		}
+
+		check_admin_referer( 'ykt_export_campaign_report' );
+
+		$orders = $this->campaign_report_orders( $this->report_filters_from_request() );
+
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=yiari-campaign-report-' . gmdate( 'Ymd-His' ) . '.csv' );
+		echo "\xEF\xBB\xBF";
+
+		$output = fopen( 'php://output', 'w' );
+		fputcsv( $output, $this->campaign_report_csv_headers() );
+		foreach ( $orders as $order ) {
+			fputcsv( $output, $this->campaign_report_csv_row( $order ) );
+		}
+
+		exit;
 	}
 
 	/**
@@ -680,6 +826,287 @@ class YKT_Admin {
 		$emails[ $email_key ]->trigger( $order->get_id(), $order );
 		$order->add_order_note( __( 'Campaign email resent by admin bulk action.', 'yiari-campaign-toolkit' ) );
 		return true;
+	}
+
+	/**
+	 * Read sanitized report filters from the current request.
+	 *
+	 * @return array{date_from:string,date_to:string,package:string,status:string}
+	 */
+	private function report_filters_from_request(): array {
+		$date_from = isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '';
+		$date_to   = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '';
+		$package   = isset( $_GET['package'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_GET['package'] ) ) ) : '';
+		$status    = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'paid_or_later';
+
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_from ) ) {
+			$date_from = '';
+		}
+
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_to ) ) {
+			$date_to = '';
+		}
+
+		if ( ! in_array( $package, array( 'A', 'B', 'MIXED' ), true ) ) {
+			$package = '';
+		}
+
+		$allowed_statuses = array_merge( array( 'paid_or_later', 'all' ), array_keys( YKT_Order_Status::statuses() ) );
+		if ( ! in_array( $status, $allowed_statuses, true ) ) {
+			$status = 'paid_or_later';
+		}
+
+		return array(
+			'date_from' => $date_from,
+			'date_to'   => $date_to,
+			'package'   => $package,
+			'status'    => $status,
+		);
+	}
+
+	/**
+	 * Query campaign orders matching report filters.
+	 *
+	 * @param array{date_from:string,date_to:string,package:string,status:string} $filters Report filters.
+	 * @return array<int, WC_Order>
+	 */
+	private function campaign_report_orders( array $filters ): array {
+		$args = array(
+			'limit'      => -1,
+			'orderby'    => 'date',
+			'order'      => 'DESC',
+			'return'     => 'objects',
+			'status'     => $this->report_statuses_for_filter( $filters['status'] ),
+			'meta_query' => array(
+				array(
+					'key'     => self::META_PACKAGE_TYPE,
+					'compare' => 'EXISTS',
+				),
+			),
+		);
+
+		if ( $filters['package'] ) {
+			$args['meta_query'][] = array(
+				'key'   => self::META_PACKAGE_TYPE,
+				'value' => $filters['package'],
+			);
+		}
+
+		if ( $filters['date_from'] || $filters['date_to'] ) {
+			$from = $filters['date_from'] ?: '1970-01-01';
+			$to   = $filters['date_to'] ?: gmdate( 'Y-m-d' );
+			$args['date_created'] = $from . '...' . $to;
+		}
+
+		$orders = wc_get_orders( $args );
+		return array_values( array_filter( $orders, static fn( $order ) => $order instanceof WC_Order ) );
+	}
+
+	/**
+	 * Resolve report statuses for a filter value.
+	 *
+	 * @return array<int, string>
+	 */
+	private function report_statuses_for_filter( string $status ): array {
+		if ( 'all' === $status ) {
+			return array_keys( wc_get_order_statuses() );
+		}
+
+		if ( 'paid_or_later' === $status ) {
+			return $this->campaign_paid_statuses();
+		}
+
+		return array( $status );
+	}
+
+	/**
+	 * Campaign lifecycle statuses that represent confirmed value.
+	 *
+	 * @return array<int, string>
+	 */
+	private function campaign_paid_statuses(): array {
+		return array( 'paid', 'certificate-sent', 'ready-to-ship', 'shipped', 'delivered', 'impact-sent' );
+	}
+
+	/**
+	 * Build report summary totals.
+	 *
+	 * @param array<int, WC_Order> $orders Campaign orders.
+	 * @return array<string, mixed>
+	 */
+	private function campaign_report_summary( array $orders ): array {
+		$summary = array(
+			'orders'          => count( $orders ),
+			'paid_orders'     => 0,
+			'donors'          => array(),
+			'donated_books'   => 0,
+			'purchased_books' => 0,
+			'package_a'       => 0,
+			'package_b'       => 0,
+			'gross_total'     => 0.0,
+			'certificates'    => 0,
+			'awb'             => 0,
+		);
+
+		foreach ( $orders as $order ) {
+			$row = $this->campaign_report_row( $order );
+			if ( in_array( $order->get_status(), $this->campaign_paid_statuses(), true ) || $order->is_paid() ) {
+				++$summary['paid_orders'];
+			}
+
+			$donor_key = strtolower( trim( $order->get_billing_email() ) );
+			if ( '' === $donor_key ) {
+				$donor_key = 'order-' . $order->get_id();
+			}
+
+			$summary['donors'][ $donor_key ] = true;
+			$summary['donated_books'] += $row['donated_books'];
+			$summary['purchased_books'] += $row['purchased_books'];
+			$summary['package_a'] += $row['package_a_qty'];
+			$summary['package_b'] += $row['package_b_qty'];
+			$summary['gross_total'] += (float) $order->get_total();
+			$summary['certificates'] += '' !== $row['certificate'] ? 1 : 0;
+			$summary['awb'] += '' !== $row['awb'] ? 1 : 0;
+		}
+
+		$summary['donors'] = count( $summary['donors'] );
+		return $summary;
+	}
+
+	/**
+	 * Build dashboard cards from summary totals.
+	 *
+	 * @param array<string, mixed> $summary Summary data.
+	 * @return array<int, array{label:string,value:string}>
+	 */
+	private function campaign_report_cards( array $summary ): array {
+		return array(
+			array( 'label' => __( 'Buku donasi terkumpul', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['donated_books'] ) ),
+			array( 'label' => __( 'Pembelian buku donor', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['purchased_books'] ) ),
+			array( 'label' => __( 'Paket A', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['package_a'] ) ),
+			array( 'label' => __( 'Paket B', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['package_b'] ) ),
+			array( 'label' => __( 'Donatur unik', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['donors'] ) ),
+			array( 'label' => __( 'Order campaign', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['orders'] ) ),
+			array( 'label' => __( 'Order paid/lifecycle', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['paid_orders'] ) ),
+			array( 'label' => __( 'Total transaksi', 'yiari-campaign-toolkit' ), 'value' => wp_strip_all_tags( wc_price( (float) $summary['gross_total'] ) ) ),
+			array( 'label' => __( 'Sertifikat dibuat', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['certificates'] ) ),
+			array( 'label' => __( 'Resi tersedia', 'yiari-campaign-toolkit' ), 'value' => number_format_i18n( (int) $summary['awb'] ) ),
+		);
+	}
+
+	/**
+	 * Build normalized report data for one order.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function campaign_report_row( WC_Order $order ): array {
+		$quantities = $this->campaign_package_quantities( $order );
+		$package = (string) $order->get_meta( self::META_PACKAGE_TYPE, true );
+		$awb = (string) $order->get_meta( self::META_AWB_NUMBER, true );
+
+		return array(
+			'order_id'             => $order->get_id(),
+			'order_number'         => $order->get_order_number(),
+			'date'                 => $order->get_date_created() ? $order->get_date_created()->date_i18n( 'Y-m-d H:i:s' ) : '',
+			'name'                 => $order->get_formatted_billing_full_name(),
+			'email'                => $order->get_billing_email(),
+			'phone'                => $order->get_billing_phone(),
+			'address'              => $this->plain_order_address( $order ),
+			'package'              => $package ? 'Paket ' . $package : '-',
+			'package_a_qty'        => $quantities['A'],
+			'package_b_qty'        => $quantities['B'],
+			'donated_books'        => $quantities['A'] + $quantities['B'],
+			'purchased_books'      => $quantities['B'],
+			'items'                => $this->campaign_items_label( $order ),
+			'total'                => $order->get_total(),
+			'status'               => $order->get_status(),
+			'status_label'         => wc_get_order_status_name( $order->get_status() ),
+			'payment_method'       => $order->get_payment_method_title(),
+			'certificate'          => (string) $order->get_meta( self::META_CERTIFICATE_NUMBER, true ),
+			'awb'                  => $awb,
+			'courier'              => (string) $order->get_meta( '_shipping_courier_name', true ),
+			'kiriminaja_status'    => (string) $order->get_meta( self::META_KIRIMINAJA_STATUS, true ),
+			'tracking_url'         => $awb || in_array( $package, array( 'B', 'MIXED' ), true ) ? home_url( '/tracking/?order_id=' . rawurlencode( (string) $order->get_order_number() ) ) : '',
+			'order_status_url'     => $order->get_checkout_order_received_url(),
+			'donor_reason'         => (string) $order->get_meta( self::META_DONOR_REASON, true ),
+			'consent_updates'      => $this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_UPDATES, true ) ),
+			'consent_yiari'        => $this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_YIARI_INFO, true ) ),
+			'consent_testimonial'  => $this->yes_no_label( (string) $order->get_meta( self::META_CONSENT_TESTIMONIAL, true ) ),
+			'segments'             => implode( ',', $this->segments_for_order( $order ) ),
+			'internal_note'        => (string) $order->get_meta( self::META_INTERNAL_NOTE, true ),
+		);
+	}
+
+	/**
+	 * CSV report column headers.
+	 *
+	 * @return array<int, string>
+	 */
+	private function campaign_report_csv_headers(): array {
+		return array( 'Order ID', 'Order Number', 'Date', 'Name', 'Email', 'Phone', 'Address', 'Package', 'Paket A Qty', 'Paket B Qty', 'Buku Donasi', 'Buku Pembelian Donor', 'Items', 'Order Total', 'Status', 'Payment Method', 'Certificate Number', 'AWB/Resi', 'Courier', 'KiriminAja Status', 'Tracking URL', 'Order Status URL', 'Donor Reason', 'Consent Campaign Updates', 'Consent YIARI Info', 'Consent Testimonial Contact', 'Segments', 'Internal Note' );
+	}
+
+	/**
+	 * CSV report row values.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function campaign_report_csv_row( WC_Order $order ): array {
+		$row = $this->campaign_report_row( $order );
+		return array( $row['order_id'], $row['order_number'], $row['date'], $row['name'], $row['email'], $row['phone'], $row['address'], $row['package'], $row['package_a_qty'], $row['package_b_qty'], $row['donated_books'], $row['purchased_books'], $row['items'], $row['total'], $row['status_label'], $row['payment_method'], $row['certificate'], $row['awb'], $row['courier'], $row['kiriminaja_status'], $row['tracking_url'], $row['order_status_url'], $row['donor_reason'], $row['consent_updates'], $row['consent_yiari'], $row['consent_testimonial'], $row['segments'], $row['internal_note'] );
+	}
+
+	/**
+	 * Count Paket A and Paket B quantities from immutable order item package meta.
+	 *
+	 * @return array{A:int,B:int}
+	 */
+	private function campaign_package_quantities( WC_Order $order ): array {
+		$quantities = array( 'A' => 0, 'B' => 0 );
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof WC_Order_Item_Product ) {
+				continue;
+			}
+
+			$package = strtoupper( (string) $item->get_meta( self::META_PACKAGE_TYPE, true ) );
+			if ( isset( $quantities[ $package ] ) ) {
+				$quantities[ $package ] += (int) $item->get_quantity();
+			}
+		}
+
+		return $quantities;
+	}
+
+	/**
+	 * Build a compact item list for report display/export.
+	 */
+	private function campaign_items_label( WC_Order $order ): string {
+		$items = array();
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( $item instanceof WC_Order_Item_Product ) {
+				$items[] = $item->get_name() . ' x ' . $item->get_quantity();
+			}
+		}
+
+		return implode( '; ', $items );
+	}
+
+	/**
+	 * Return a one-line billing address for CSV/report usage.
+	 */
+	private function plain_order_address( WC_Order $order ): string {
+		$parts = array_filter(
+			array(
+				$order->get_billing_address_1(),
+				$order->get_billing_address_2(),
+				$order->get_billing_city(),
+				$order->get_billing_state(),
+				$order->get_billing_postcode(),
+				$order->get_billing_country(),
+			)
+		);
+
+		return implode( ', ', $parts );
 	}
 
 	/**
