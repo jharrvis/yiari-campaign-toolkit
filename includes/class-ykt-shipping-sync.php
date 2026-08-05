@@ -22,6 +22,7 @@ class YKT_Shipping_Sync {
 	private const META_AUTO_AWB_REQUESTED_AT = '_ykt_auto_awb_requested_at';
 	private const META_AUTO_AWB_LAST_ERROR = '_ykt_auto_awb_last_error';
 	private const META_AUTO_AWB_LAST_ATTEMPT_AT = '_ykt_auto_awb_last_attempt_at';
+	private const META_KIRIMINAJA_PAYMENT_SYNCED_AT = '_ykt_kiriminaja_payment_synced_at';
 	private const CRON_HOOK = 'ykt_shipping_sync_poll';
 	private const CRON_RECURRENCE = 'ykt_every_fifteen_minutes';
 
@@ -177,6 +178,8 @@ class YKT_Shipping_Sync {
 		if ( ! $transaction ) {
 			return;
 		}
+
+		$this->sync_kiriminaja_payment_status( $order, $transaction );
 
 		$awb = isset( $transaction->awb ) ? trim( (string) $transaction->awb ) : '';
 		$courier = isset( $transaction->service_name ) ? trim( (string) $transaction->service_name ) : '';
@@ -694,6 +697,88 @@ class YKT_Shipping_Sync {
 			$wpdb->prepare(
 				"SELECT * FROM {$table} WHERE wp_wc_order_stat_order_id = %d ORDER BY id DESC LIMIT 1",
 				$order_id
+			)
+		);
+
+		return is_object( $row ) ? $row : null;
+	}
+
+	/**
+	 * Refresh KiriminAja payment state when a webhook is delayed or missed.
+	 *
+	 * The official KiriminAja plugin writes AWB only after a package callback,
+	 * but its payment detail service can confirm paid QRIS invoices from the
+	 * remote API. Running that service here keeps local payment state current
+	 * and leaves AWB creation to KiriminAja's normal processed-package flow.
+	 *
+	 * @param WC_Order $order Order object.
+	 * @param object   $transaction KiriminAja transaction row.
+	 */
+	private function sync_kiriminaja_payment_status( WC_Order $order, object $transaction ): void {
+		$pickup_number = trim( (string) ( $transaction->pickup_number ?? '' ) );
+		if ( '' === $pickup_number || '' !== trim( (string) ( $transaction->awb ?? '' ) ) ) {
+			return;
+		}
+
+		if ( ! class_exists( '\\KiriminAjaOfficial\\Services\\ShippingProcessServices\\GetShippingProcessPayment' ) ) {
+			return;
+		}
+
+		$local_payment = $this->get_kiriminaja_payment( $pickup_number );
+		if ( $local_payment && 'paid' === strtolower( (string) ( $local_payment->status ?? '' ) ) ) {
+			return;
+		}
+
+		try {
+			$response = ( new \KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment() )
+				->payment_id( $pickup_number )
+				->call();
+		} catch ( Throwable $throwable ) {
+			return;
+		}
+
+		if ( 200 !== (int) ( $response->status ?? 0 ) ) {
+			return;
+		}
+
+		$refreshed_payment = $this->get_kiriminaja_payment( $pickup_number );
+		if ( ! $refreshed_payment || 'paid' !== strtolower( (string) ( $refreshed_payment->status ?? '' ) ) ) {
+			return;
+		}
+
+		if ( '' !== (string) $order->get_meta( self::META_KIRIMINAJA_PAYMENT_SYNCED_AT, true ) ) {
+			return;
+		}
+
+		$order->update_meta_data( self::META_KIRIMINAJA_PAYMENT_SYNCED_AT, current_time( 'mysql' ) );
+		$order->add_order_note(
+			sprintf(
+				/* translators: %s: KiriminAja pickup/payment number. */
+				__( 'KiriminAja payment was confirmed by fallback API sync for pickup %s. Waiting for KiriminAja processed-package callback to provide the AWB.', 'yiari-campaign-toolkit' ),
+				$pickup_number
+			)
+		);
+		$order->save();
+	}
+
+	/**
+	 * Fetch one KiriminAja pickup payment row.
+	 *
+	 * @param string $pickup_number KiriminAja pickup/payment number.
+	 */
+	private function get_kiriminaja_payment( string $pickup_number ): ?object {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'kiriminaja_payments';
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		if ( $table_exists !== $table ) {
+			return null;
+		}
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE pickup_number = %s ORDER BY id DESC LIMIT 1",
+				$pickup_number
 			)
 		);
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a KiriminAja payment fallback sync that checks remote QRIS pickup invoices during shipping polling when webhook callbacks are delayed or missed.
 - Added a WooCommerce > Campaign Report admin page with date-package-status filters, campaign summary metrics, donor/order table, and Excel-friendly CSV export.
 - Added the [ykt_book_counter target="1000"] shortcode for Indonesian campaign book totals with AJAX refresh support.
 - Preserved Oxygen Builder query-string requests by bypassing canonical and shop redirects for builder edit or iframe URLs.
