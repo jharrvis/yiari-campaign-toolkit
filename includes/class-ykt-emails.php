@@ -25,10 +25,10 @@ class YKT_Emails {
 	}
 
 	/**
-	 * Use YIARI's public media mailbox for WooCommerce customer email contact text.
+	 * Use YIARI's donation mailbox for campaign email sender and contact text.
 	 */
 	public function support_email_address(): string {
-		return 'media@yiari.or.id';
+		return 'donasi@yiari.or.id';
 	}
 
 	/**
@@ -244,12 +244,19 @@ class YKT_Email_Campaign_Paid extends YKT_Email_Campaign_Base {
 		$this->id             = 'ykt_campaign_paid';
 		$this->title          = __( 'YIARI Campaign - Payment Confirmed', 'yiari-campaign-toolkit' );
 		$this->description    = __( 'Sent after a campaign order is paid. Includes the donor certificate when available.', 'yiari-campaign-toolkit' );
-		$this->heading        = __( 'Thank you for supporting Karmila & Gito', 'yiari-campaign-toolkit' );
-		$this->subject        = __( 'Your YIARI campaign support is confirmed', 'yiari-campaign-toolkit' );
+		$this->heading        = __( 'Mari Berpetualang bersama Karmila dan Gito!', 'yiari-campaign-toolkit' );
+		$this->subject        = __( 'Mari Berpetualang bersama Karmila dan Gito!', 'yiari-campaign-toolkit' );
 		$this->message_lines  = array(
-			__( 'We have received your payment and recorded your support for the Karmila & Gito book campaign.', 'yiari-campaign-toolkit' ),
-			__( 'Your campaign certificate is attached to this email when generation succeeds.', 'yiari-campaign-toolkit' ),
-			__( 'If your package includes shipping, we will send another update when the book is on its way.', 'yiari-campaign-toolkit' ),
+			__( 'Terima kasih telah menjadi bagian dari perjalanan “Petualangan Karmila & Gito, Menyelamatkan Orangutan” melalui dukunganmu untuk proses pencetakan dan distribusi buku ini.', 'yiari-campaign-toolkit' ),
+			__( 'Dukunganmu membantu kami membawa cerita tentang orangutan dan upaya pelestariannya lebih dekat kepada anak-anak dan keluarga, termasuk anak-anak yang tinggal di sekitar habitat orangutan.', 'yiari-campaign-toolkit' ),
+			__( 'Berikut informasi pemesananmu:', 'yiari-campaign-toolkit' ),
+			__( 'Saat ini, buku sedang dalam proses menuju tahap pencetakan. Kami akan mengabari kamu kembali melalui email ketika buku sudah selesai dicetak dan siap untuk didistribusikan.', 'yiari-campaign-toolkit' ),
+			__( 'Sambil menunggu Karmila dan Gito sampai ke tanganmu, sebagai bentuk apresiasi atas dukunganmu, kami juga melampirkan versi digital buku “Petualangan Karmila & Gito, Menyelamatkan Orangutan” spesial untuk kamu.', 'yiari-campaign-toolkit' ),
+			__( 'Selamat membaca dan berpetualang bersama Karmila dan Gito. Semoga cerita ini bisa ikut dibagikan kepada keluarga, teman, dan orang-orang terdekatmu, agar semakin banyak yang mengenal dan peduli terhadap orangutan serta rumah mereka di alam.', 'yiari-campaign-toolkit' ),
+			__( 'Terima kasih sudah ikut menyebarkan kebaikan untuk alam dan satwa liar. 🌿', 'yiari-campaign-toolkit' ),
+			__( 'Salam lestari,', 'yiari-campaign-toolkit' ),
+			__( 'Tim Edukasi YIARI', 'yiari-campaign-toolkit' ),
+			__( 'Yayasan Inisiasi Alam Rehabilitasi Indonesia', 'yiari-campaign-toolkit' ),
 		);
 		$this->configure_templates();
 		parent::__construct();
@@ -269,6 +276,10 @@ class YKT_Email_Campaign_Paid extends YKT_Email_Campaign_Base {
 			}
 		}
 
+		$digital_book_path = YKT_PLUGIN_DIR . 'assets/book/Petualangan Karmila Gito - Compressed.pdf';
+		if ( file_exists( $digital_book_path ) ) {
+			$attachments[] = $digital_book_path;
+		}
 		return $attachments;
 	}
 }
@@ -284,12 +295,6 @@ class YKT_Email_Campaign_Shipped extends YKT_Email_Campaign_Base {
 		$this->id            = 'ykt_campaign_shipped';
 		$this->title         = __( 'YIARI Campaign - Shipped', 'yiari-campaign-toolkit' );
 		$this->description   = __( 'Sent when a campaign order reaches shipped status.', 'yiari-campaign-toolkit' );
-		$this->heading       = __( 'Your YIARI package is on its way', 'yiari-campaign-toolkit' );
-		$this->subject       = __( 'Your YIARI campaign package has shipped', 'yiari-campaign-toolkit' );
-		$this->message_lines = array(
-			__( 'Your campaign package has been handed to the courier.', 'yiari-campaign-toolkit' ),
-			__( 'Tracking details are shown in your order notes when they are available from the shipping integration.', 'yiari-campaign-toolkit' ),
-		);
 		$this->configure_templates();
 		parent::__construct();
 	}
@@ -306,12 +311,6 @@ class YKT_Email_Campaign_Delivered extends YKT_Email_Campaign_Base {
 		$this->id            = 'ykt_campaign_delivered';
 		$this->title         = __( 'YIARI Campaign - Delivered', 'yiari-campaign-toolkit' );
 		$this->description   = __( 'Sent when a campaign order reaches delivered status.', 'yiari-campaign-toolkit' );
-		$this->heading       = __( 'Thank you, your package has arrived', 'yiari-campaign-toolkit' );
-		$this->subject       = __( 'Your YIARI campaign package has arrived', 'yiari-campaign-toolkit' );
-		$this->message_lines = array(
-			__( 'Thank you for taking part in this campaign and helping books reach more readers.', 'yiari-campaign-toolkit' ),
-			__( 'We appreciate your support and will keep you updated about the campaign impact when the report is ready.', 'yiari-campaign-toolkit' ),
-		);
 		$this->configure_templates();
 		parent::__construct();
 	}
@@ -344,12 +343,6 @@ class YKT_Email_Campaign_Impact extends YKT_Email_Campaign_Base {
 		$this->id            = 'ykt_campaign_impact';
 		$this->title         = __( 'YIARI Campaign - Impact Report', 'yiari-campaign-toolkit' );
 		$this->description   = __( 'Sent when the campaign impact report has been sent.', 'yiari-campaign-toolkit' );
-		$this->heading       = __( 'Your campaign impact update', 'yiari-campaign-toolkit' );
-		$this->subject       = __( 'YIARI campaign impact update', 'yiari-campaign-toolkit' );
-		$this->message_lines = array(
-			__( 'The campaign impact report is now available.', 'yiari-campaign-toolkit' ),
-			__( 'Thank you for helping YIARI create meaningful conservation education resources.', 'yiari-campaign-toolkit' ),
-		);
 		$this->configure_templates();
 		parent::__construct();
 	}

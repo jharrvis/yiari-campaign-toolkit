@@ -1,0 +1,4 @@
+/* Keep address rows out of the Paket A form and its accessibility tree. */
+.ykt-package-a-hidden-address {
+	display: none !important;
+}

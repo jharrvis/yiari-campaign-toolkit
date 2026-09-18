@@ -27,7 +27,7 @@ class YKT_Checkout {
 		add_action( 'woocommerce_admin_process_product_object', array( $this, 'save_product_package_field' ) );
 		add_filter( 'woocommerce_cart_needs_shipping', array( $this, 'maybe_disable_shipping_for_package_a' ), 20 );
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'enqueue_checkout_assets' ) );
-		add_filter( 'woocommerce_checkout_fields', array( $this, 'adjust_checkout_fields' ), 99 );
+		add_filter( 'woocommerce_checkout_fields', array( $this, 'adjust_checkout_fields' ), 10000 );
 		add_action( 'woocommerce_after_order_notes', array( $this, 'render_campaign_fields' ) );
 		add_action( 'woocommerce_checkout_process', array( $this, 'validate_checkout' ) );
 		add_action( 'woocommerce_checkout_create_order', array( $this, 'save_order_meta' ), 20, 2 );
@@ -129,9 +129,16 @@ class YKT_Checkout {
 	 * Enqueue checkout UX helpers.
 	 */
 	public function enqueue_checkout_assets(): void {
-		if ( 'A' !== $this->get_cart_package_type() ) {
+		if ( ! in_array( $this->get_cart_package_type(), array( 'A', 'B', 'MIXED' ), true ) ) {
 			return;
 		}
+
+		wp_enqueue_style(
+			'ykt-checkout',
+			YKT_PLUGIN_URL . 'assets/checkout.css',
+			array(),
+			YKT_VERSION
+		);
 
 		wp_enqueue_script(
 			'ykt-checkout',
@@ -150,7 +157,7 @@ class YKT_Checkout {
 	 */
 	public function adjust_checkout_fields( array $fields ): array {
 		$cart_type = $this->get_cart_package_type();
-		$address_fields = array( 'address_1', 'address_2', 'city', 'state', 'postcode', 'country' );
+		$address_fields = array( 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'kiriof_destination_area', 'kiriof_shipping_destination_area' );
 
 		if ( 'A' === $cart_type ) {
 			foreach ( array( 'billing', 'shipping' ) as $group ) {
@@ -167,6 +174,7 @@ class YKT_Checkout {
 		}
 
 		if ( in_array( $cart_type, array( 'B', 'MIXED' ), true ) ) {
+			$fields = $this->restore_standard_address_fields( $fields );
 			$required_billing_fields = array( 'first_name', 'phone', 'address_1', 'city', 'postcode', 'country' );
 			foreach ( $required_billing_fields as $field ) {
 				$key = 'billing_' . $field;
@@ -177,6 +185,42 @@ class YKT_Checkout {
 
 			if ( isset( $fields['billing']['kiriof_destination_area'] ) ) {
 				$fields['billing']['kiriof_destination_area']['required'] = true;
+			}
+		}
+
+		return $fields;
+	}
+
+	/**
+	 * Restore standard address fields removed by the KiriminAja checkout filter.
+	 *
+	 * @param array<string, mixed> $fields Checkout fields.
+	 * @return array<string, mixed>
+	 */
+	private function restore_standard_address_fields( array $fields ): array {
+		if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->countries ) || ! WC()->countries ) {
+			return $fields;
+		}
+
+		$country = 'ID';
+		if ( isset( WC()->customer ) && is_object( WC()->customer ) && method_exists( WC()->customer, 'get_billing_country' ) ) {
+			$country = WC()->customer->get_billing_country() ?: $country;
+		}
+
+		foreach ( array( 'billing', 'shipping' ) as $group ) {
+			$prefix         = $group . '_';
+			$default_fields = WC()->countries->get_address_fields( $country, $prefix );
+
+			foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+				$key = $prefix . $field;
+
+				if ( ! isset( $fields[ $group ][ $key ] ) && isset( $default_fields[ $key ] ) ) {
+					$fields[ $group ][ $key ] = $default_fields[ $key ];
+				}
+
+				if ( isset( $fields[ $group ][ $key ] ) ) {
+					$fields[ $group ][ $key ]['required'] = true;
+				}
 			}
 		}
 

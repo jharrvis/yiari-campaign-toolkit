@@ -1,0 +1,23 @@
+:root {
+  --page-bg: #f4f0e7;
+  --surface: #fffdf8;
+  --ink: #26352b;
+}
+* { box-sizing: border-box; }
+html { background: var(--page-bg); scroll-behavior: smooth; }
+body { margin: 0; color: var(--ink); background: var(--page-bg); font-family: Georgia, "Times New Roman", serif; }
+.campaign-preview { width: 100%; overflow: hidden; background: var(--surface); }
+.desktop-pages, .mobile-pages { width: 100%; }
+.campaign-preview img { display: block; width: 100%; height: auto; }
+.mobile-pages { display: none; }
+@media (max-width: 767px) {
+  .desktop-pages { display: none; }
+  .mobile-pages { display: block; }
+  .campaign-preview { min-width: 320px; }
+}
+@media (min-width: 768px) {
+  .campaign-preview { max-width: 1920px; margin: 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

@@ -17,6 +17,18 @@ class YKT_Campaign_Frontend {
 	private const SKU_PACKAGE_B = 'YKT-KG-PAKET-B';
 
 	/**
+	 * Add a link from checkout order review back to the campaign shop.
+	 */
+	public function render_add_campaign_product_row(): void {
+		$campaign_page = get_page_by_path( 'campaign' );
+		$campaign_url  = $campaign_page instanceof WP_Post ? get_permalink( $campaign_page ) : home_url( '/campaign/' );
+
+		echo '<tr class="ykt-add-product-row"><td colspan="3"><a class="ykt-add-product-link" href="' . esc_url( $campaign_url . '#ykt-campaign-products' ) . '">' . esc_html__( 'Tambah Paket lain', 'yiari-campaign-toolkit' ) . '</a></td></tr>';
+	}
+
+
+
+	/**
 	 * Register public hooks and shortcodes.
 	 */
 	public function init(): void {
@@ -26,6 +38,8 @@ class YKT_Campaign_Frontend {
 		add_shortcode( 'ykt_cart_icon', array( $this, 'render_cart_icon_shortcode' ) );
 		add_action( 'wp_loaded', array( $this, 'handle_campaign_add_to_cart' ), 15 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_cart_assets' ) );
+		add_action( 'woocommerce_review_order_after_cart_contents', array( $this, 'render_add_campaign_product_row' ) );
+		add_action( 'woocommerce_review_order_after_payment', array( $this, 'render_checkout_supported_payment_logos' ) );
 		add_filter( 'wp_kses_allowed_html', array( $this, 'allow_cart_quantity_input_html' ), 10, 2 );
 		add_filter( 'woocommerce_add_to_cart_fragments', array( $this, 'cart_fragments' ) );
 		add_action( 'template_redirect', array( $this, 'redirect_shop_to_campaign' ) );
@@ -35,6 +49,7 @@ class YKT_Campaign_Frontend {
 		add_action( 'wp_ajax_ykt_cart_panel', array( $this, 'ajax_cart_panel' ) );
 		add_action( 'wp_ajax_nopriv_ykt_cart_panel', array( $this, 'ajax_cart_panel' ) );
 	}
+
 
 	/**
 	 * Add a campaign product with the selected quantity as the final cart quantity.
@@ -74,6 +89,7 @@ class YKT_Campaign_Frontend {
 		exit;
 	}
 
+
 	/**
 	 * Render the full campaign landing section.
 	 *
@@ -99,7 +115,14 @@ class YKT_Campaign_Frontend {
 
 		ob_start();
 		?>
-		<section class="ykt-campaign" aria-label="Campaign Buku Karmila dan Gito">
+		<section class="ykt-campaign__promo-hero" aria-label="Hero campaign Karmila dan Gito">
+                        <picture>
+                                <source media="(max-width: 767px)" srcset="https://yiari.or.id/wp-content/uploads/2026/09/hero-mobile.webp">
+                                <img src="https://yiari.or.id/wp-content/uploads/2026/09/hero-desktop-fix.webp" alt="Campaign Karmila dan Gito" loading="eager" fetchpriority="high" decoding="async">
+                        </picture>
+                </section>
+
+                <section class="ykt-campaign" aria-label="Campaign Buku Karmila dan Gito">
 			<div class="ykt-campaign__hero">
 				<div class="ykt-campaign__hero-copy">
 					<p class="ykt-campaign__eyebrow"><?php echo esc_html__( 'Campaign buku anak', 'yiari-campaign-toolkit' ); ?></p>
@@ -143,6 +166,7 @@ class YKT_Campaign_Frontend {
 		return (string) ob_get_clean();
 	}
 
+
 	/**
 	 * Render the two campaign product cards.
 	 *
@@ -175,11 +199,193 @@ class YKT_Campaign_Frontend {
 				<?php echo $this->render_product_card( 'A', $products['A'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<?php echo $this->render_product_card( 'B', $products['B'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
+
+			<?php echo $this->render_supported_payment_methods(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</section>
 		<?php
 
 		return (string) ob_get_clean();
 	}
+
+	/**
+	 * Render payment methods available through the installed Midtrans SNAP gateway.
+	 */
+	private function render_supported_payment_methods(): string {
+		$groups = array(
+			__( 'Kartu', 'yiari-campaign-toolkit' ) => array(
+				'cc_visa.png' => 'Visa',
+				'cc_master.png' => 'Mastercard',
+				'cc_amex.png' => 'American Express',
+				'cc_jcb.png' => 'JCB',
+			),
+			__( 'Virtual Account', 'yiari-campaign-toolkit' ) => array(
+				'bca_va.png' => 'BCA VA',
+				'bni_va.png' => 'BNI VA',
+				'bri_va.png' => 'BRI VA',
+				'permata_va.png' => 'Permata VA',
+				'other_va_1.png' => 'Bank lainnya',
+			),
+			__( 'E-wallet dan QRIS', 'yiari-campaign-toolkit' ) => array(
+				'gopay.png' => 'GoPay',
+				'shopeepay.png' => 'ShopeePay',
+				'qris.png' => 'QRIS',
+				'akulaku.png' => 'Akulaku',
+			),
+			__( 'Gerai dan Internet Banking', 'yiari-campaign-toolkit' ) => array(
+				'alfamart_1.png' => 'Alfamart',
+				'indomaret.png' => 'Indomaret',
+				'bca_klikpay.png' => 'BCA KlikPay',
+				'bri_epay.png' => 'BRI ePay',
+				'cimb_clicks.png' => 'CIMB Clicks',
+				'echannel.png' => 'Mandiri e-Channel',
+				'alt_mandiri_ecash.png' => 'Mandiri eCash',
+				'alt_mandiri_clickpay.png' => 'Mandiri ClickPay',
+				'alt_uob.png' => 'UOB',
+				'danamon_online.png' => 'Danamon Online',
+			),
+		);
+
+		$base_url = defined( 'MIDTRANS_PLUGIN_DIR_URL' )
+			? MIDTRANS_PLUGIN_DIR_URL . 'public/images/payment-methods/'
+			: plugins_url( 'public/images/payment-methods/', WP_PLUGIN_DIR . '/SNAP-Woocommerce-master/midtrans-gateway.php' );
+		$enabled_methods = $this->get_dashboard_payment_methods();
+		if ( is_array( $enabled_methods ) ) {
+			foreach ( $groups as $group_name => $methods ) {
+				$groups[ $group_name ] = array_intersect_key( $methods, array_flip( $enabled_methods ) );
+				if ( empty( $groups[ $group_name ] ) ) {
+					unset( $groups[ $group_name ] );
+				}
+			}
+		}
+
+		ob_start();
+		?>
+		<section class="ykt-supported-payments" aria-labelledby="ykt-supported-payments-heading">
+			<div class="ykt-supported-payments__intro">
+				<p class="paket-buku-section__eyebrow"><?php echo esc_html__( 'Pembayaran aman', 'yiari-campaign-toolkit' ); ?></p>
+				<h2 id="ykt-supported-payments-heading"><?php echo esc_html__( 'All Supported Payment', 'yiari-campaign-toolkit' ); ?></h2>
+				<p><?php echo esc_html__( 'Pilih metode pembayaran yang tersedia melalui Midtrans saat checkout.', 'yiari-campaign-toolkit' ); ?></p>
+			</div>
+			<?php foreach ( $groups as $group_name => $methods ) : ?>
+				<div class="ykt-supported-payments__group">
+					<h3><?php echo esc_html( $group_name ); ?></h3>
+					<div class="ykt-supported-payments__logos">
+						<?php foreach ( $methods as $file => $label ) : ?>
+							<div class="ykt-supported-payments__method">
+								<img src="<?php echo esc_url( $base_url . $file ); ?>" alt="<?php echo esc_attr( $label ); ?>" loading="lazy">
+								<span><?php echo esc_html( $label ); ?></span>
+							</div>
+						<?php endforeach; ?>
+					</div>
+				</div>
+			<?php endforeach; ?>
+		</section>
+		<?php
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Read enabled payment channels from the merchant's current Snap Preferences.
+	 *
+	 * @return array<int, string>|null Enabled logo filenames, or null when unavailable.
+	 */
+	private function get_dashboard_payment_methods(): ?array {
+		$settings = get_option( 'woocommerce_midtrans_settings', array() );
+		$environment = isset( $settings['select_midtrans_environment'] ) ? $settings['select_midtrans_environment'] : 'sandbox';
+		$server_key = 'production' === $environment
+			? ( $settings['server_key_v2_production'] ?? '' )
+			: ( $settings['server_key_v2_sandbox'] ?? '' );
+
+		if ( ! $server_key ) {
+			return null;
+		}
+
+		$cache_key = 'ykt_midtrans_channels_' . md5( $environment . ':' . $server_key );
+		$cached = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			return is_array( $cached ) ? $cached : null;
+		}
+
+		$endpoint = 'production' === $environment
+			? 'https://app.midtrans.com/snap/v3/merchant-preferences'
+			: 'https://app.sandbox.midtrans.com/snap/v3/merchant-preferences';
+		$response = wp_remote_get(
+			$endpoint,
+			array(
+				'timeout' => 8,
+				'headers' => array(
+					'Accept'        => 'application/json',
+					'Content-Type'  => 'application/json',
+					'Authorization' => 'Basic ' . base64_encode( $server_key . ':' ),
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return null;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $data['payment_channels'] ) || ! is_array( $data['payment_channels'] ) ) {
+			return null;
+		}
+
+		$logo_map = array(
+			'credit_card' => array( 'cc_visa.png', 'cc_master.png', 'cc_amex.png', 'cc_jcb.png' ),
+			'bca_va'      => array( 'bca_va.png' ),
+			'bni_va'      => array( 'bni_va.png' ),
+			'bri_va'      => array( 'bri_va.png' ),
+			'permata_va'  => array( 'permata_va.png' ),
+			'cimb_va'     => array( 'other_va_1.png' ),
+			'danamon_va'  => array( 'other_va_2.png' ),
+			'bsi_va'      => array( 'other_va_3.png' ),
+			'other_va'    => array( 'other_va_1.png' ),
+			'gopay'       => array( 'gopay.png' ),
+			'shopeepay'   => array( 'shopeepay.png' ),
+			'other_qris'  => array( 'qris.png' ),
+			'alfamart'    => array( 'alfamart_1.png' ),
+			'indomaret'   => array( 'indomaret.png' ),
+			'echannel'    => array( 'echannel.png' ),
+			'akulaku'     => array( 'akulaku.png' ),
+			'kredivo'     => array(),
+		);
+		$enabled_files = array();
+
+		foreach ( $data['payment_channels'] as $channel ) {
+			$name = $channel['name'] ?? '';
+			if ( ! empty( $channel['enabled'] ) && isset( $logo_map[ $name ] ) ) {
+				$enabled_files = array_merge( $enabled_files, $logo_map[ $name ] );
+			}
+		}
+
+		$enabled_files = array_values( array_unique( $enabled_files ) );
+		set_transient( $cache_key, $enabled_files, 10 * MINUTE_IN_SECONDS );
+
+		return $enabled_files;
+	}
+
+	/**
+	 * Render a compact list of currently enabled payment logos on checkout.
+	 */
+	public function render_checkout_supported_payment_logos(): void {
+		$enabled_methods = $this->get_dashboard_payment_methods();
+		if ( ! is_array( $enabled_methods ) || empty( $enabled_methods ) ) {
+			return;
+		}
+
+		$base_url = defined( 'MIDTRANS_PLUGIN_DIR_URL' )
+			? MIDTRANS_PLUGIN_DIR_URL . 'public/images/payment-methods/'
+			: plugins_url( 'public/images/payment-methods/', WP_PLUGIN_DIR . '/SNAP-Woocommerce-master/midtrans-gateway.php' );
+
+		echo '<div class="ykt-checkout-supported-payments" aria-label="' . esc_attr__( 'Metode pembayaran yang didukung', 'yiari-campaign-toolkit' ) . '">';
+		echo '<span>' . esc_html__( 'Didukung:', 'yiari-campaign-toolkit' ) . '</span><div class="ykt-checkout-supported-payments__logos">';
+		foreach ( $enabled_methods as $file ) {
+			echo '<img src="' . esc_url( $base_url . $file ) . '" alt="" loading="lazy">';
+		}
+		echo '</div></div>';
+	}
+
 
 	/**
 	 * Render an Oxygen-friendly single campaign product detail section.
@@ -278,6 +484,7 @@ class YKT_Campaign_Frontend {
 		return (string) ob_get_clean();
 	}
 
+
 	/**
 	 * Render a menu/header friendly cart icon.
 	 *
@@ -311,6 +518,7 @@ class YKT_Campaign_Frontend {
 		);
 	}
 
+
 	/**
 	 * Redirect the default WooCommerce shop archive to the campaign landing page.
 	 */
@@ -329,6 +537,7 @@ class YKT_Campaign_Frontend {
 	}
 
 
+
 	/**
 	 * Prevent WordPress canonical redirects from stripping Oxygen Builder query args.
 	 *
@@ -341,6 +550,7 @@ class YKT_Campaign_Frontend {
 
 		return $this->is_oxygen_builder_request() ? false : $redirect_url;
 	}
+
 
 	/**
 	 * Detect Oxygen Builder edit/iframe requests that must keep their query string.
@@ -355,6 +565,7 @@ class YKT_Campaign_Frontend {
 		return false;
 	}
 
+
 	/**
 	 * Update the cart icon count after WooCommerce AJAX add-to-cart events.
 	 *
@@ -368,6 +579,7 @@ class YKT_Campaign_Frontend {
 		return $fragments;
 	}
 
+
 	/**
 	 * Return cart count for page-cache-friendly refreshes.
 	 */
@@ -378,6 +590,7 @@ class YKT_Campaign_Frontend {
 			)
 		);
 	}
+
 
 
 	/**
@@ -391,6 +604,7 @@ class YKT_Campaign_Frontend {
 			)
 		);
 	}
+
 
 	/**
 	 * Render the off-canvas cart panel shell once per shortcode instance.
@@ -420,6 +634,7 @@ class YKT_Campaign_Frontend {
 
 		return (string) ob_get_clean();
 	}
+
 
 	/**
 	 * Render current cart items for the drawer body.
@@ -463,6 +678,7 @@ class YKT_Campaign_Frontend {
 		return (string) ob_get_clean();
 	}
 
+
 	/**
 	 * Load campaign frontend assets on WooCommerce cart, checkout, and account pages.
 	 */
@@ -476,6 +692,7 @@ class YKT_Campaign_Frontend {
 			$this->enqueue_assets();
 		}
 	}
+
 
 	/**
 	 * Keep WooCommerce cart quantity fields editable when KiriminAja sanitizes the cart row.
@@ -515,6 +732,7 @@ class YKT_Campaign_Frontend {
 		return $allowed_html;
 	}
 
+
 	/**
 	 * Load frontend styles/scripts only when a shortcode renders.
 	 */
@@ -531,6 +749,7 @@ class YKT_Campaign_Frontend {
 		);
 	}
 
+
 	/**
 	 * Resolve package products from explicit IDs or campaign SKUs.
 	 *
@@ -542,6 +761,7 @@ class YKT_Campaign_Frontend {
 			'B' => $this->product_by_id_or_sku( $package_b_id, self::SKU_PACKAGE_B ),
 		);
 	}
+
 
 	/**
 	 * Get product by explicit ID with SKU fallback.
@@ -565,6 +785,7 @@ class YKT_Campaign_Frontend {
 		return null;
 	}
 
+
 	/**
 	 * Return concise package-specific copy for the single product template.
 	 */
@@ -579,6 +800,7 @@ class YKT_Campaign_Frontend {
 
 		return __( 'Dukung campaign buku Karmila & Gito bersama YIARI.', 'yiari-campaign-toolkit' );
 	}
+
 
 	/**
 	 * Return package-specific benefit bullets for the single product template.
@@ -610,6 +832,7 @@ class YKT_Campaign_Frontend {
 			__( 'Konfirmasi email dikirim otomatis setelah pembayaran berhasil', 'yiari-campaign-toolkit' ),
 		);
 	}
+
 
 	/**
 	 * Render one product card.
@@ -691,6 +914,7 @@ class YKT_Campaign_Frontend {
 		return (string) ob_get_clean();
 	}
 
+
 	/**
 	 * Current WooCommerce cart item count.
 	 */
@@ -701,6 +925,7 @@ class YKT_Campaign_Frontend {
 
 		return 0;
 	}
+
 
 	/**
 	 * Inline cart SVG for header/menu usage.

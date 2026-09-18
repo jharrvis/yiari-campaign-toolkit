@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Changed paid campaign email sender to `donasi@yiari.or.id` and restored the non-personalized compressed digital book attachment.
+
+- Updated the paid donor notification email with Indonesian Karmila & Gito campaign copy, conditional Paket B tracking, and the digital book PDF attachment.
+
+- Prevented province UI synchronization from triggering duplicate checkout updates that could suppress shipping and insurance fees.
+
+- Prevented repeated checkout reloads by triggering province changes only when the value actually changes.
+
+- Synchronized the selected province field immediately when changing KiriminAja districts without requiring a page refresh.
+
+- Hardened checkout address autofill against WooCommerce fragment re-renders and classic/Blocks field ID variants.
+
+- Re-applied selected KiriminAja province, city, and postcode after WooCommerce checkout fragments refresh.
+
+- Prevented address autofill from triggering parallel checkout updates that could reuse stale shipping rates when changing KiriminAja districts.
+
+- Added checkout autofill for city, province, and postcode from the selected KiriminAja district on Paket B/MIXED orders.
+
+- Expanded the new campaign character-image lift to tablet widths and enforced it against Oxygen positioning overrides.
+- Raised the two mobile campaign character images so they no longer cover the hero copy on the new campaign page.
+- Removed the empty viewport-height space below the new campaign hero so the next section follows the existing hero content cleanly.
+- Fixed responsive flow before the campaign product section by removing smaller-screen negative offsets and allowing stacked Oxygen sections to size to their content.
+- Fixed the mobile campaign hero banner sizing so the top background image spans the viewport instead of rendering as a narrow 80px strip.
 - Added a KiriminAja payment fallback sync that checks remote QRIS pickup invoices during shipping polling when webhook callbacks are delayed or missed.
 - Added a WooCommerce > Campaign Report admin page with date-package-status filters, campaign summary metrics, donor/order table, and Excel-friendly CSV export.
 - Added the [ykt_book_counter target="1000"] shortcode for Indonesian campaign book totals with AJAX refresh support.

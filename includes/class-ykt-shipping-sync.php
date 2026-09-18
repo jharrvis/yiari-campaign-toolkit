@@ -720,7 +720,7 @@ class YKT_Shipping_Sync {
 			return;
 		}
 
-		if ( ! class_exists( '\\KiriminAjaOfficial\\Services\\ShippingProcessServices\\GetShippingProcessPayment' ) ) {
+		if ( ! class_exists( '\KiriminAjaOfficial\\Services\\ShippingProcessServices\\GetShippingProcessPayment' ) ) {
 			return;
 		}
 
@@ -843,6 +843,31 @@ class YKT_Shipping_Sync {
 		$transaction  = $this->get_tracking_transaction( $order_number );
 		if ( ! $transaction ) {
 			return;
+		}
+
+		// Prefer live KiriminAja data so delayed webhooks do not leave tracking stale.
+		if ( '' !== trim( (string) ( $transaction->order_id ?? '' ) ) && class_exists( '\KiriminAjaOfficial\\Repositories\\KiriminajaApiRepository' ) ) {
+			try {
+				$remote_response = ( new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository() )->getTracking(
+					array( 'order_id' => (string) $transaction->order_id )
+				);
+				$remote_data = $remote_response['data'] ?? null;
+				if ( ! empty( $remote_response['status'] ) && is_object( $remote_data ) ) {
+					wp_send_json_success(
+						array(
+							'status'  => 200,
+							'message' => 'success',
+							'data'    => array(
+								'number_order' => (int) $transaction->wp_wc_order_stat_order_id,
+								'details'      => $remote_data->details ?? array(),
+								'histories'    => $remote_data->histories ?? array(),
+							),
+						)
+					);
+				}
+			} catch ( Throwable $throwable ) {
+				// Fall back to the local transaction response when the remote API is unavailable.
+			}
 		}
 
 		wp_send_json_success(
