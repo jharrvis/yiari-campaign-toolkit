@@ -14,14 +14,234 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class YKT_Emails {
 	/**
+	 * Built-in customer email currently being rendered for a campaign order.
+	 *
+	 * @var WC_Email|null
+	 */
+	private ?WC_Email $active_campaign_customer_email = null;
+
+	/**
 	 * Register hooks.
 	 */
 	public function init(): void {
 		add_filter( 'woocommerce_email_classes', array( $this, 'register_email_classes' ) );
+		add_filter( 'woocommerce_email_attachments', array( $this, 'personalize_campaign_book_attachment' ), 20, 3 );
+		add_filter( 'woocommerce_email_subject_customer_processing_order', array( $this, 'translate_customer_email_subject' ), 20, 3 );
+		add_filter( 'woocommerce_email_subject_customer_on_hold_order', array( $this, 'translate_customer_email_subject' ), 20, 3 );
+		add_filter( 'woocommerce_email_subject_customer_completed_order', array( $this, 'translate_customer_email_subject' ), 20, 3 );
+		add_filter( 'woocommerce_email_heading_customer_processing_order', array( $this, 'translate_customer_email_heading' ), 20, 3 );
+		add_filter( 'woocommerce_email_heading_customer_on_hold_order', array( $this, 'translate_customer_email_heading' ), 20, 3 );
+		add_filter( 'woocommerce_email_heading_customer_completed_order', array( $this, 'translate_customer_email_heading' ), 20, 3 );
+		add_filter( 'woocommerce_email_additional_content_customer_processing_order', array( $this, 'translate_customer_email_additional_content' ), 20, 3 );
+		add_filter( 'woocommerce_email_additional_content_customer_on_hold_order', array( $this, 'translate_customer_email_additional_content' ), 20, 3 );
+		add_filter( 'woocommerce_email_additional_content_customer_completed_order', array( $this, 'translate_customer_email_additional_content' ), 20, 3 );
+		add_filter( 'gettext_woocommerce', array( $this, 'translate_active_customer_email_text' ), 20, 3 );
+		add_action( 'woocommerce_email_sent', array( $this, 'clear_active_customer_email' ), 20, 3 );
 		add_filter( 'woocommerce_email_from_address', array( $this, 'support_email_address' ) );
+		add_filter( 'woocommerce_email_from_name', array( $this, 'support_email_name' ), 20, 2 );
 		add_filter( 'woocommerce_email_footer_text', array( $this, 'replace_footer_contact_email' ) );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'trigger_for_status' ), 50, 4 );
 		$this->register_loaded_mailer();
+	}
+
+	/**
+	 * Translate built-in WooCommerce customer email subjects for campaign orders.
+	 *
+	 * @param string       $subject Existing subject.
+	 * @param WC_Order|bool $order Order object.
+	 * @param WC_Email     $email Email object.
+	 * @return string
+	 */
+	public function translate_customer_email_subject( string $subject, $order, $email ): string {
+		if ( ! $this->is_campaign_customer_email( $order, $email ) ) {
+			return $subject;
+		}
+
+		$this->active_campaign_customer_email = $email;
+		$subjects = array(
+			'customer_processing_order' => sprintf( 'Pesanan %s Anda telah diterima!', get_bloginfo( 'name' ) ),
+			'customer_on_hold_order'    => sprintf( 'Pesanan Anda sedang menunggu pembayaran - %s', get_bloginfo( 'name' ) ),
+			'customer_completed_order'  => sprintf( 'Pesanan %s Anda telah selesai', get_bloginfo( 'name' ) ),
+		);
+
+		return $subjects[ $email->id ] ?? $subject;
+	}
+
+	/**
+	 * Translate built-in WooCommerce customer email headings for campaign orders.
+	 *
+	 * @param string       $heading Existing heading.
+	 * @param WC_Order|bool $order Order object.
+	 * @param WC_Email     $email Email object.
+	 * @return string
+	 */
+	public function translate_customer_email_heading( string $heading, $order, $email ): string {
+		if ( ! $this->is_campaign_customer_email( $order, $email ) ) {
+			return $heading;
+		}
+
+		$this->active_campaign_customer_email = $email;
+		$headings = array(
+			'customer_processing_order' => 'Terima kasih atas pesanan Anda',
+			'customer_on_hold_order'    => 'Pesanan Anda sedang menunggu pembayaran',
+			'customer_completed_order'  => 'Pesanan Anda telah selesai diproses',
+		);
+
+		return $headings[ $email->id ] ?? $heading;
+	}
+
+	/**
+	 * Replace configurable WooCommerce additional content with Indonesian copy.
+	 *
+	 * @param string       $content Existing additional content.
+	 * @param WC_Order|bool $order Order object.
+	 * @param WC_Email     $email Email object.
+	 * @return string
+	 */
+	public function translate_customer_email_additional_content( string $content, $order, $email ): string {
+		if ( ! $this->is_campaign_customer_email( $order, $email ) ) {
+			return $content;
+		}
+
+		$this->active_campaign_customer_email = $email;
+		$contents = array(
+			'customer_processing_order' => sprintf( 'Terima kasih telah mendukung kampanye Petualangan Karmila & Gito. Jika membutuhkan bantuan terkait pesanan, silakan hubungi kami melalui email %s.', $this->support_email_address() ),
+			'customer_on_hold_order'    => 'Kami akan mengirimkan pembaruan berikutnya setelah pembayaran Anda terkonfirmasi.',
+			'customer_completed_order'  => 'Terima kasih telah mendukung kampanye Petualangan Karmila & Gito.',
+		);
+
+		return $contents[ $email->id ] ?? $content;
+	}
+
+	/**
+	 * Translate common WooCommerce strings while a campaign customer email renders.
+	 *
+	 * @param string $translation Translated string.
+	 * @param string $text Original string.
+	 * @param string $domain Text domain.
+	 * @return string
+	 */
+	public function translate_active_customer_email_text( string $translation, string $text, string $domain ): string {
+		$email = $this->active_campaign_customer_email;
+		if ( 'woocommerce' !== $domain || ! $email instanceof WC_Email || ! $this->is_campaign_customer_email( $email->object, $email ) ) {
+			return $translation;
+		}
+
+		$translations = array(
+			'Hi %s,' => 'Halo %s,',
+			'Hi,' => 'Halo,',
+			'Just to let you know &mdash; we\'ve received your order #%s, and it is now being processed:' => 'Pesanan #%s Anda telah kami terima dan sedang diproses.',
+			'Just to let you know &mdash; we’ve received your order, and it is now being processed.' => 'Pesanan Anda telah kami terima dan sedang diproses.',
+			'Here’s a reminder of what you’ve ordered:' => 'Berikut ringkasan pesanan Anda:',
+			'Thanks for your order. It’s on-hold until we confirm that payment has been received.' => 'Terima kasih atas pesanan Anda. Pesanan ini menunggu konfirmasi pembayaran.',
+			'We’ve received your order and it’s currently on hold until we can confirm your payment has been processed.' => 'Pesanan Anda telah kami terima dan saat ini menunggu konfirmasi pembayaran.',
+			'We have finished processing your order.' => 'Pesanan Anda telah selesai diproses.',
+			'Product' => 'Produk',
+			'Quantity' => 'Jumlah',
+			'Price' => 'Harga',
+			'Order summary' => 'Ringkasan pesanan',
+			'[Order #%s]' => '[Pesanan #%s]',
+			'Order #%s' => 'Pesanan #%s',
+			'Order #%1$s' => 'Pesanan #%1$s',
+			'[Order #%1$s]' => '[Pesanan #%1$s]',
+			'Customer details' => 'Detail donatur',
+			'Order details' => 'Detail pesanan',
+			'Name' => 'Nama',
+			'Email address' => 'Alamat email',
+			'Phone' => 'Telepon',
+			'Address' => 'Alamat',
+			'City' => 'Kota',
+			'State' => 'Provinsi',
+			'Postcode' => 'Kode pos',
+			'Country' => 'Negara',
+			'Billing address' => 'Alamat penagihan',
+			'Shipping address' => 'Alamat pengiriman',
+			'Shipping' => 'Pengiriman',
+			'Payment method' => 'Metode pembayaran',
+			'Subtotal' => 'Subtotal',
+			'Total' => 'Total',
+			'Note:' => 'Catatan:',
+			'Free!' => 'Gratis!',
+			'Thanks for using {site_url}!' => 'Terima kasih telah menggunakan {site_url}!',
+			'Thanks for shopping with us' => 'Terima kasih telah berbelanja bersama kami',
+			'Thanks for shopping with us.' => 'Terima kasih telah berbelanja bersama kami.',
+			'Thanks again! If you need any help with your order, please contact us at {store_email}.' => 'Terima kasih. Jika membutuhkan bantuan terkait pesanan, silakan hubungi kami melalui email {store_email}.',
+		);
+
+		return $translations[ $text ] ?? $translation;
+	}
+
+	/**
+	 * Clear the translation context after a WooCommerce email is dispatched.
+	 *
+	 * @param bool     $sent Whether the email was sent.
+	 * @param string   $email_id Email ID.
+	 * @param WC_Email $email Email object.
+	 */
+	public function clear_active_customer_email( bool $sent, string $email_id, $email ): void {
+		unset( $sent, $email_id );
+		if ( $email === $this->active_campaign_customer_email ) {
+			$this->active_campaign_customer_email = null;
+		}
+	}
+
+	/**
+	 * Determine whether a built-in customer email belongs to a campaign order.
+	 *
+	 * @param mixed    $order Order object.
+	 * @param mixed    $email Email object.
+	 */
+	private function is_campaign_customer_email( $order, $email ): bool {
+		return $email instanceof WC_Email
+			&& in_array( $email->id, array( 'customer_processing_order', 'customer_on_hold_order', 'customer_completed_order' ), true )
+			&& $order instanceof WC_Order
+			&& class_exists( 'YKT_Checkout' )
+			&& YKT_Checkout::order_has_campaign_package( $order );
+	}
+
+	/**
+	 * Ensure campaign customer emails use the donor-personalized digital book.
+	 *
+	 * Payment gateways may trigger a built-in WooCommerce customer email instead
+	 * of the campaign email, so normalize the attachment at the common filter.
+	 *
+	 * @param array<int, string> $attachments Existing attachment paths.
+	 * @param string             $email_id WooCommerce email identifier.
+	 * @param mixed              $object Email object, usually a WC_Order.
+	 * @return array<int, string>
+	 */
+	public function personalize_campaign_book_attachment( array $attachments, string $email_id, $object ): array {
+		$allowed_email_ids = array( 'ykt_campaign_paid', 'customer_processing_order', 'customer_on_hold_order', 'customer_completed_order', 'customer_invoice' );
+		if ( ! in_array( $email_id, $allowed_email_ids, true ) || ! $object instanceof WC_Order ) {
+			return $attachments;
+		}
+		if ( ! class_exists( 'YKT_Checkout' ) || ! YKT_Checkout::order_has_campaign_package( $object ) ) {
+			return $attachments;
+		}
+
+		$generic_book = wp_normalize_path( YKT_PLUGIN_DIR . 'assets/book/FIXED PDF Buku Karmila Gito + Page Greetings.pdf' );
+
+		$has_personalized_book = false;
+		foreach ( $attachments as $attachment ) {
+			if ( 0 === strpos( basename( (string) $attachment ), 'ykt-' ) && file_exists( (string) $attachment ) ) {
+				$has_personalized_book = true;
+				break;
+			}
+		}
+
+		if ( ! $has_personalized_book ) {
+			$personalized_book = YKT_Book_Personalizer::create_for_order( $object );
+			if ( $personalized_book && file_exists( $personalized_book ) && wp_normalize_path( $personalized_book ) !== $generic_book ) {
+				$attachments = array_values( array_filter( $attachments, static function ( $attachment ) use ( $generic_book ): bool {
+					return wp_normalize_path( (string) $attachment ) !== $generic_book;
+				} ) );
+				$attachments[] = $personalized_book;
+			} elseif ( $personalized_book && file_exists( $personalized_book ) && ! in_array( $personalized_book, $attachments, true ) ) {
+				$attachments[] = $personalized_book;
+			}
+		}
+
+		return array_values( array_unique( $attachments ) );
 	}
 
 	/**
@@ -29,6 +249,31 @@ class YKT_Emails {
 	 */
 	public function support_email_address(): string {
 		return 'donasi@yiari.or.id';
+	}
+
+	/**
+	 * Set a recognizable sender name for campaign emails only.
+	 *
+	 * @param string       $from_name Existing sender name.
+	 * @param WC_Email|null $email Email object.
+	 */
+	public function support_email_name( string $from_name, $email = null ): string {
+		$campaign_email_ids = array(
+			'ykt_campaign_paid',
+			'ykt_campaign_shipped',
+			'ykt_campaign_delivered',
+			'ykt_campaign_impact',
+			'customer_processing_order',
+			'customer_on_hold_order',
+			'customer_completed_order',
+			'customer_invoice',
+		);
+
+		if ( $email instanceof WC_Email && in_array( $email->id, $campaign_email_ids, true ) ) {
+			return 'Donasi Buku YIARI';
+		}
+
+		return $from_name;
 	}
 
 	/**
@@ -177,8 +422,9 @@ abstract class YKT_Email_Campaign_Base extends WC_Email {
 			}
 		}
 
+		$attachments = $this->get_attachments();
 		if ( $this->is_enabled() && $this->get_recipient() ) {
-			$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
+			$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $attachments );
 		}
 
 		$this->restore_locale();
@@ -276,10 +522,32 @@ class YKT_Email_Campaign_Paid extends YKT_Email_Campaign_Base {
 			}
 		}
 
-		$digital_book_path = YKT_PLUGIN_DIR . 'assets/book/Petualangan Karmila Gito - Compressed.pdf';
-		if ( file_exists( $digital_book_path ) ) {
-			$attachments[] = $digital_book_path;
+		// Keep the book attached even when another email integration bypasses or
+		// replaces the common woocommerce_email_attachments filter.
+		if ( $this->object instanceof WC_Order && class_exists( 'YKT_Book_Personalizer' ) ) {
+			$has_personalized_book = false;
+			foreach ( $attachments as $attachment ) {
+				if ( 0 === strpos( basename( (string) $attachment ), 'ykt-' ) && file_exists( (string) $attachment ) ) {
+					$has_personalized_book = true;
+					break;
+				}
+			}
+
+			if ( ! $has_personalized_book ) {
+				$personalized_book = YKT_Book_Personalizer::create_for_order( $this->object );
+				if ( $personalized_book && file_exists( $personalized_book ) && ! in_array( $personalized_book, $attachments, true ) ) {
+					$attachments[] = $personalized_book;
+				}
+			}
 		}
+
+		if ( $this->object instanceof WC_Order ) {
+			wc_get_logger()->info(
+				'Campaign paid email attachments: ' . wp_json_encode( array_map( 'basename', $attachments ) ),
+				array( 'source' => 'yiari-campaign-toolkit', 'order_id' => $this->object->get_id() )
+			);
+		}
+
 		return $attachments;
 	}
 }
@@ -293,8 +561,11 @@ class YKT_Email_Campaign_Shipped extends YKT_Email_Campaign_Base {
 	 */
 	public function __construct() {
 		$this->id            = 'ykt_campaign_shipped';
-		$this->title         = __( 'YIARI Campaign - Shipped', 'yiari-campaign-toolkit' );
-		$this->description   = __( 'Sent when a campaign order reaches shipped status.', 'yiari-campaign-toolkit' );
+		$this->title         = __( 'YIARI Campaign - Pesanan Dikirim', 'yiari-campaign-toolkit' );
+		$this->description   = __( 'Dikirim saat pesanan campaign mulai dikirim.', 'yiari-campaign-toolkit' );
+		$this->heading       = __( 'Pesanan Anda sedang dikirim', 'yiari-campaign-toolkit' );
+		$this->subject       = __( 'Pesanan Anda sedang dikirim - Yayasan IAR Indonesia', 'yiari-campaign-toolkit' );
+		$this->message_lines = array( __( 'Pesanan Anda sudah dikirim. Anda dapat memantau status pengiriman melalui tautan pelacakan di bawah ini.', 'yiari-campaign-toolkit' ) );
 		$this->configure_templates();
 		parent::__construct();
 	}
@@ -309,8 +580,11 @@ class YKT_Email_Campaign_Delivered extends YKT_Email_Campaign_Base {
 	 */
 	public function __construct() {
 		$this->id            = 'ykt_campaign_delivered';
-		$this->title         = __( 'YIARI Campaign - Delivered', 'yiari-campaign-toolkit' );
-		$this->description   = __( 'Sent when a campaign order reaches delivered status.', 'yiari-campaign-toolkit' );
+		$this->title         = __( 'YIARI Campaign - Pesanan Diterima', 'yiari-campaign-toolkit' );
+		$this->description   = __( 'Dikirim saat pesanan campaign telah diterima.', 'yiari-campaign-toolkit' );
+		$this->heading       = __( 'Pesanan Anda telah diterima', 'yiari-campaign-toolkit' );
+		$this->subject       = __( 'Pesanan Anda telah diterima - Yayasan IAR Indonesia', 'yiari-campaign-toolkit' );
+		$this->message_lines = array( __( 'Kami mengonfirmasi bahwa pesanan Anda telah diterima. Terima kasih telah mendukung kampanye Petualangan Karmila & Gito.', 'yiari-campaign-toolkit' ) );
 		$this->configure_templates();
 		parent::__construct();
 	}
@@ -341,8 +615,11 @@ class YKT_Email_Campaign_Impact extends YKT_Email_Campaign_Base {
 	 */
 	public function __construct() {
 		$this->id            = 'ykt_campaign_impact';
-		$this->title         = __( 'YIARI Campaign - Impact Report', 'yiari-campaign-toolkit' );
-		$this->description   = __( 'Sent when the campaign impact report has been sent.', 'yiari-campaign-toolkit' );
+		$this->title         = __( 'YIARI Campaign - Laporan Dampak', 'yiari-campaign-toolkit' );
+		$this->description   = __( 'Dikirim saat laporan dampak campaign dibagikan.', 'yiari-campaign-toolkit' );
+		$this->heading       = __( 'Kabar terbaru dari kampanye YIARI', 'yiari-campaign-toolkit' );
+		$this->subject       = __( 'Kabar terbaru dari kampanye YIARI', 'yiari-campaign-toolkit' );
+		$this->message_lines = array( __( 'Kami ingin berbagi kabar terbaru mengenai dampak dukungan Anda untuk kampanye Petualangan Karmila & Gito.', 'yiari-campaign-toolkit' ) );
 		$this->configure_templates();
 		parent::__construct();
 	}

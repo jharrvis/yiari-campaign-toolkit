@@ -20,8 +20,7 @@ class YKT_Campaign_Frontend {
 	 * Add a link from checkout order review back to the campaign shop.
 	 */
 	public function render_add_campaign_product_row(): void {
-		$campaign_page = get_page_by_path( 'campaign' );
-		$campaign_url  = $campaign_page instanceof WP_Post ? get_permalink( $campaign_page ) : home_url( '/campaign/' );
+		$campaign_url = home_url( '/karmilagito/' );
 
 		echo '<tr class="ykt-add-product-row"><td colspan="3"><a class="ykt-add-product-link" href="' . esc_url( $campaign_url . '#ykt-campaign-products' ) . '">' . esc_html__( 'Tambah Paket lain', 'yiari-campaign-toolkit' ) . '</a></td></tr>';
 	}
@@ -160,7 +159,32 @@ class YKT_Campaign_Frontend {
 			</div>
 
 			<?php echo $this->render_products_shortcode( $atts ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
 		</section>
+		<?php
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Render a compact floating package selector for the campaign landing page.
+	 */
+	private function render_floating_package_selector(): string {
+		ob_start();
+		?>
+		<details class="ykt-package-float">
+			<summary><?php echo esc_html__( 'Pilih Paket', 'yiari-campaign-toolkit' ); ?></summary>
+			<div class="ykt-package-float__menu" role="menu" aria-label="<?php echo esc_attr__( 'Pilih paket kontribusi', 'yiari-campaign-toolkit' ); ?>">
+				<a href="#paket-a-title" role="menuitem">
+					<strong><?php echo esc_html__( 'Paket A', 'yiari-campaign-toolkit' ); ?></strong>
+					<span><?php echo esc_html__( 'Traktir buku untuk anak', 'yiari-campaign-toolkit' ); ?></span>
+				</a>
+				<a href="#paket-b-title" role="menuitem">
+					<strong><?php echo esc_html__( 'Paket B', 'yiari-campaign-toolkit' ); ?></strong>
+					<span><?php echo esc_html__( 'Beli buku, traktir buku', 'yiari-campaign-toolkit' ); ?></span>
+				</a>
+			</div>
+		</details>
 		<?php
 
 		return (string) ob_get_clean();
@@ -201,6 +225,8 @@ class YKT_Campaign_Frontend {
 			</div>
 
 			<?php echo $this->render_supported_payment_methods(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+
+			<?php echo $this->render_floating_package_selector(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</section>
 		<?php
 

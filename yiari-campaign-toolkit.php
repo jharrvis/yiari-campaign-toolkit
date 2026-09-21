@@ -2,7 +2,7 @@
 /**
  * Plugin Name: YIARI Campaign Toolkit
  * Description: Campaign orchestration layer for the Karmila & Gito book fundraising flow.
- * Version: 0.1.16
+ * Version: 0.1.21
  * Author: YIARI
  * Text Domain: yiari-campaign-toolkit
  * Requires Plugins: woocommerce
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'YKT_VERSION', '0.1.16' );
+define( 'YKT_VERSION', '0.1.21' );
 define( 'YKT_PLUGIN_FILE', __FILE__ );
 define( 'YKT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'YKT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -28,6 +28,7 @@ if ( file_exists( $ykt_autoload ) ) {
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-order-status.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-checkout.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-certificate.php';
+require_once YKT_PLUGIN_DIR . 'includes/class-ykt-book-personalizer.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-shipping-sync.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-progress-counter.php';
 require_once YKT_PLUGIN_DIR . 'includes/class-ykt-campaign-frontend.php';
@@ -46,6 +47,7 @@ add_action( 'plugins_loaded', 'ykt_bootstrap', 20 );
 function ykt_activate(): void {
 	YKT_Order_Status::activate();
 	YKT_Shipping_Sync::activate();
+	YKT_Book_Personalizer::activate();
 }
 
 /**
@@ -53,6 +55,7 @@ function ykt_activate(): void {
  */
 function ykt_deactivate(): void {
 	YKT_Shipping_Sync::deactivate();
+	YKT_Book_Personalizer::deactivate();
 	wp_clear_scheduled_hook( 'ykt_reconcile_midtrans_pending_orders' );
 }
 
@@ -60,6 +63,8 @@ function ykt_deactivate(): void {
  * Bootstrap the campaign toolkit after dependency plugins have loaded.
  */
 function ykt_bootstrap(): void {
+	YKT_Book_Personalizer::init();
+
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'ykt_missing_woocommerce_notice' );
 		return;

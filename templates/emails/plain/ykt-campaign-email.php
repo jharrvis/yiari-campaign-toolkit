@@ -17,7 +17,7 @@ echo esc_html( $email_heading ) . "\n\n";
 if ( $order instanceof WC_Order ) {
 	printf(
 		/* translators: %s: customer first name. */
-		esc_html__( 'Hi %s,', 'yiari-campaign-toolkit' ),
+		esc_html__( 'Halo %s,', 'yiari-campaign-toolkit' ),
 		esc_html( $order->get_billing_first_name() ?: $order->get_formatted_billing_full_name() )
 	);
 	echo "\n\n";
@@ -36,15 +36,15 @@ foreach ( (array) $message_lines as $message_index => $message_line ) {
 }
 
 if ( ! $is_paid_email && $order instanceof WC_Order && $order->get_meta( '_shipping_awb_number', true ) ) {
-	echo esc_html__( 'Shipping details', 'yiari-campaign-toolkit' ) . "\n";
-	echo esc_html__( 'Courier:', 'yiari-campaign-toolkit' ) . ' ' . esc_html( (string) $order->get_meta( '_shipping_courier_name', true ) ?: '-' ) . "\n";
+	echo esc_html__( 'Detail pengiriman', 'yiari-campaign-toolkit' ) . "\n";
+	echo esc_html__( 'Kurir:', 'yiari-campaign-toolkit' ) . ' ' . esc_html( (string) $order->get_meta( '_shipping_courier_name', true ) ?: '-' ) . "\n";
 	echo esc_html__( 'AWB:', 'yiari-campaign-toolkit' ) . ' ' . esc_html( (string) $order->get_meta( '_shipping_awb_number', true ) ) . "\n\n";
 }
 
 if ( ! $is_paid_email && $is_shipping_package ) {
 	echo esc_html__( 'Link pesanan Paket B', 'yiari-campaign-toolkit' ) . "\n";
-	echo esc_html__( 'Tracking pesanan:', 'yiari-campaign-toolkit' ) . ' ' . esc_url( home_url( '/tracking/?order_id=' . rawurlencode( (string) $order->get_order_number() ) ) ) . "\n";
-	echo esc_html__( 'Cek status order:', 'yiari-campaign-toolkit' ) . ' ' . esc_url( $order->get_checkout_order_received_url() ) . "\n\n";
+	echo esc_html__( 'Lacak pesanan:', 'yiari-campaign-toolkit' ) . ' ' . esc_url( home_url( '/tracking/?order_id=' . rawurlencode( (string) $order->get_order_number() ) ) ) . "\n";
+	echo esc_html__( 'Cek status pesanan:', 'yiari-campaign-toolkit' ) . ' ' . esc_url( $order->get_checkout_order_received_url() ) . "\n\n";
 }
 
 if ( ! $is_paid_email && $order instanceof WC_Order ) {

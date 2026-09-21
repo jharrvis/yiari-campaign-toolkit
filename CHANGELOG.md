@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Set the campaign email sender name to `Donasi Buku YIARI` without changing non-campaign WooCommerce email sender names.
+
+- Switched donor book personalization to the fixed PDF source, preserved the `Hai,` donor greeting while removing the background block and final Ghostscript compression, and added hourly cleanup for personalized PDFs older than one day. A temporary parser-compatible copy is created only when generating the donor PDF.
+
+- Removed the generic compressed-book fallback from donor emails so a personalization failure cannot send a PDF with the `[ Nama Donatur ]` placeholder.
+
+- Localized campaign customer emails and built-in WooCommerce order emails to Bahasa Indonesia while preserving the paid-email subject “Mari Berpetualang bersama Karmila dan Gito!”.
+
+- Ensured WooCommerce payment/customer email routes replace the generic campaign book PDF with the donor-personalized version on page 3.
+
+- Corrected the donor-name overlay on page 3 to replace the actual `[ Nama Donatur ]` placeholder position and preserve the `Hai,` greeting.
+
+- Added per-donor PDF book personalization using the `[ Nama Donatur ]` placeholder on page 3, with optimized output and a safe generic-book fallback.
+
+- Lowered the floating campaign package selector by 50px on desktop and mobile.
+
+- Raised the floating campaign package selector above Oxygen's Back to Top button on desktop and mobile.
+
+- Added a responsive floating campaign package selector that links directly to Paket A and Paket B product cards.
+
 - Changed paid campaign email sender to `donasi@yiari.or.id` and restored the non-personalized compressed digital book attachment.
 
 - Updated the paid donor notification email with Indonesian Karmila & Gito campaign copy, conditional Paket B tracking, and the digital book PDF attachment.

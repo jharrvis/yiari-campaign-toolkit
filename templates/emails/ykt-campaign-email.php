@@ -20,7 +20,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 		<?php
 		printf(
 			/* translators: %s: customer first name. */
-			esc_html__( 'Hi %s,', 'yiari-campaign-toolkit' ),
+			esc_html__( 'Halo %s,', 'yiari-campaign-toolkit' ),
 			esc_html( $order->get_billing_first_name() ?: $order->get_formatted_billing_full_name() )
 		);
 		?>
@@ -44,8 +44,8 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 
 <?php if ( ! $is_paid_email && $order instanceof WC_Order && $order->get_meta( '_shipping_awb_number', true ) ) : ?>
 	<p>
-		<strong><?php esc_html_e( 'Shipping details', 'yiari-campaign-toolkit' ); ?></strong><br>
-		<?php esc_html_e( 'Courier:', 'yiari-campaign-toolkit' ); ?> <?php echo esc_html( (string) $order->get_meta( '_shipping_courier_name', true ) ?: '-' ); ?><br>
+		<strong><?php esc_html_e( 'Detail pengiriman', 'yiari-campaign-toolkit' ); ?></strong><br>
+		<?php esc_html_e( 'Kurir:', 'yiari-campaign-toolkit' ); ?> <?php echo esc_html( (string) $order->get_meta( '_shipping_courier_name', true ) ?: '-' ); ?><br>
 		<?php esc_html_e( 'AWB:', 'yiari-campaign-toolkit' ); ?> <?php echo esc_html( (string) $order->get_meta( '_shipping_awb_number', true ) ); ?>
 	</p>
 <?php endif; ?>
@@ -53,8 +53,8 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 <?php if ( ! $is_paid_email && $is_shipping_package ) : ?>
 	<p>
 		<strong><?php esc_html_e( 'Link pesanan Paket B', 'yiari-campaign-toolkit' ); ?></strong><br>
-		<a href="<?php echo esc_url( home_url( '/tracking/?order_id=' . rawurlencode( (string) $order->get_order_number() ) ) ); ?>"><?php esc_html_e( 'Tracking pesanan', 'yiari-campaign-toolkit' ); ?></a><br>
-		<a href="<?php echo esc_url( $order->get_checkout_order_received_url() ); ?>"><?php esc_html_e( 'Cek status order', 'yiari-campaign-toolkit' ); ?></a>
+		<a href="<?php echo esc_url( home_url( '/tracking/?order_id=' . rawurlencode( (string) $order->get_order_number() ) ) ); ?>"><?php esc_html_e( 'Lacak pesanan', 'yiari-campaign-toolkit' ); ?></a><br>
+		<a href="<?php echo esc_url( $order->get_checkout_order_received_url() ); ?>"><?php esc_html_e( 'Cek status pesanan', 'yiari-campaign-toolkit' ); ?></a>
 	</p>
 <?php endif; ?>
 
