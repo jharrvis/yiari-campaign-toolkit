@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Updated the campaign sender address to donasi@yiari.id for the authenticated Brevo domain.
+
 - Fixed fallback email mapping and documented writable ownership requirements for personalized book generation.
 
 - Limited campaign attachments to the “Mari Berpetualang bersama Karmila dan Gito!” email; order-confirmation emails are sent without the book or certificate.

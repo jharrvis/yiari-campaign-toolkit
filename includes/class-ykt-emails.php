@@ -263,7 +263,7 @@ class YKT_Emails {
 	 * Use YIARI's donation mailbox for campaign email sender and contact text.
 	 */
 	public function support_email_address(): string {
-		return 'donasi@yiari.or.id';
+		return 'donasi@yiari.id';
 	}
 
 	/**
