@@ -217,26 +217,14 @@ class YKT_Emails {
 	 * Hold built-in campaign emails until the personalized book is ready.
 	 */
 	public function allow_campaign_customer_email( bool $enabled, $order ): bool {
-		if ( ! $enabled || ! $order instanceof WC_Order || ! class_exists( 'YKT_Checkout' ) || ! YKT_Checkout::order_has_campaign_package( $order ) ) {
-			return $enabled;
-		}
-
-		$book = YKT_Book_Personalizer::create_for_order( $order );
-		if ( $book && file_exists( $book ) ) {
-			return true;
-		}
-
-		$email_id = current_filter();
-		$email_id = str_replace( 'woocommerce_email_enabled_', '', $email_id );
-		if ( YKT_Book_Personalizer::fallback_allowed( $order, $email_id ) ) {
-			return true;
-		}
-		YKT_Book_Personalizer::queue_email_retry( $order->get_id(), $email_id );
-		return false;
+		// The standard WooCommerce order-confirmation email never carries the
+		// campaign book. The campaign email below is the only delivery channel
+		// responsible for the certificate and personalized book.
+		return $enabled;
 	}
 
 	public function personalize_campaign_book_attachment( array $attachments, string $email_id, $object ): array {
-		$allowed_email_ids = array( 'ykt_campaign_paid', 'customer_processing_order', 'customer_on_hold_order', 'customer_completed_order', 'customer_invoice' );
+		$allowed_email_ids = array( 'ykt_campaign_paid' );
 		if ( ! in_array( $email_id, $allowed_email_ids, true ) || ! $object instanceof WC_Order ) {
 			return $attachments;
 		}
