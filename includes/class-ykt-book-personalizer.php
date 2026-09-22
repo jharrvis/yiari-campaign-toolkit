@@ -229,6 +229,13 @@ class YKT_Book_Personalizer {
 			return;
 		}
 
+		$map = array(
+			'ykt_campaign_paid'    => 'YKT_Email_Campaign_Paid',
+			'ykt_campaign_shipped' => 'YKT_Email_Campaign_Shipped',
+			'ykt_campaign_delivered' => 'YKT_Email_Campaign_Delivered',
+			'ykt_campaign_impact'  => 'YKT_Email_Campaign_Impact',
+		);
+
 		$book = self::create_for_order( $order );
 		if ( '' === $book || ! file_exists( $book ) ) {
 			$key   = '_ykt_book_email_retry_' . sanitize_key( $email_id );
@@ -241,7 +248,7 @@ class YKT_Book_Personalizer {
 				$order->update_meta_data( self::FALLBACK_META_PREFIX . sanitize_key( $email_id ), current_time( 'mysql', true ) );
 				$order->save();
 				wc_get_logger()->error( 'Personalized book retries exhausted; sending the campaign email with the original book as last-resort fallback.', array( 'source' => 'ykt-book-personalizer', 'order_id' => $order_id, 'email_id' => $email_id ) );
-				self::trigger_email( $order_id, $order, $email_id );
+				self::trigger_email( $order_id, $order, $email_id, $map[ $email_id ] ?? $email_id );
 			}
 			return;
 		}
@@ -249,12 +256,6 @@ class YKT_Book_Personalizer {
 		$key = '_ykt_book_email_retry_' . sanitize_key( $email_id );
 		$order->delete_meta_data( $key );
 		$order->save();
-		$map = array(
-			'ykt_campaign_paid' => 'YKT_Email_Campaign_Paid',
-			'ykt_campaign_shipped' => 'YKT_Email_Campaign_Shipped',
-			'ykt_campaign_delivered' => 'YKT_Email_Campaign_Delivered',
-			'ykt_campaign_impact' => 'YKT_Email_Campaign_Impact',
-		);
 		self::trigger_email( $order_id, $order, $email_id, $map[ $email_id ] ?? $email_id );
 	}
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed fallback email mapping and documented writable ownership requirements for personalized book generation.
+
 - Limited campaign attachments to the “Mari Berpetualang bersama Karmila dan Gito!” email; order-confirmation emails are sent without the book or certificate.
 
 - Hardened campaign book delivery with per-order locking, fail-closed personalized attachments, pre-send generation, and queued email retries so retries happen first and the original source PDF is used only as a logged last-resort fallback.
