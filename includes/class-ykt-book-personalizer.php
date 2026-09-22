@@ -21,6 +21,9 @@ class YKT_Book_Personalizer {
 	private const CLEANUP_CRON_HOOK     = 'ykt_cleanup_personalized_books';
 	private const CLEANUP_CRON_SCHEDULE = 'ykt_every_hour';
 	private const BOOK_RETENTION        = DAY_IN_SECONDS;
+	private const EMAIL_RETRY_HOOK     = 'ykt_retry_campaign_email';
+	private const MAX_EMAIL_RETRIES    = 5;
+	private const FALLBACK_META_PREFIX = '_ykt_book_email_fallback_';
 
 	/**
 	 * Source book filename uploaded by the campaign team.
@@ -34,6 +37,8 @@ class YKT_Book_Personalizer {
 	public static function init(): void {
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_cron_schedule' ) );
 		add_action( self::CLEANUP_CRON_HOOK, array( __CLASS__, 'cleanup_expired_books' ) );
+		add_action( self::EMAIL_RETRY_HOOK, array( __CLASS__, 'retry_campaign_email' ), 10, 2 );
+		add_action( 'woocommerce_order_status_changed', array( __CLASS__, 'prepare_book_on_paid' ), 40, 4 );
 
 		if ( ! wp_next_scheduled( self::CLEANUP_CRON_HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, self::CLEANUP_CRON_SCHEDULE, self::CLEANUP_CRON_HOOK );
@@ -55,6 +60,7 @@ class YKT_Book_Personalizer {
 	 */
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( self::CLEANUP_CRON_HOOK );
+		wp_clear_scheduled_hook( self::EMAIL_RETRY_HOOK );
 	}
 
 	/**
@@ -80,7 +86,7 @@ class YKT_Book_Personalizer {
 	 */
 	public static function create_for_order( $order ): string {
 		if ( ! $order instanceof WC_Order || ! class_exists( Fpdi::class ) ) {
-			return self::fallback_book_path();
+			return '';
 		}
 
 		$existing = self::existing_book_path( $order );
@@ -90,75 +96,188 @@ class YKT_Book_Personalizer {
 
 		$source = YKT_PLUGIN_DIR . 'assets/book/' . self::SOURCE_FILE;
 		if ( ! is_readable( $source ) ) {
-			return self::fallback_book_path();
-		}
-
-		$parser_source           = YKT_PLUGIN_DIR . 'assets/book/' . self::PARSER_SOURCE_FILE;
-		$normalized_source       = is_readable( $parser_source ) ? $parser_source : self::normalized_source( $source );
-		$temporary_parser_source = $normalized_source && $normalized_source !== $parser_source;
-		if ( ! $normalized_source ) {
-			return self::fallback_book_path();
+			self::log_failure( 'Personalized book source is missing.', $order );
+			return '';
 		}
 
 		$donor_name = trim( wp_strip_all_tags( $order->get_formatted_billing_full_name() ) );
 		if ( '' === $donor_name ) {
-			$donor_name = trim( wp_strip_all_tags( implode( " ", array_filter( array( (string) $order->get_billing_first_name(), (string) $order->get_billing_last_name() ) ) ) ) );
+			$donor_name = trim( wp_strip_all_tags( implode( ' ', array_filter( array( (string) $order->get_billing_first_name(), (string) $order->get_billing_last_name() ) ) ) ) );
 		}
 		if ( '' === $donor_name ) {
-			return self::fallback_book_path();
+			self::log_failure( 'Donor name is missing.', $order );
+			return '';
 		}
 
 		$upload_dir = wp_upload_dir();
 		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return self::fallback_book_path();
+			self::log_failure( 'Upload directory is unavailable.', $order );
+			return '';
 		}
 
 		$book_dir = trailingslashit( $upload_dir['basedir'] ) . self::BOOK_SUBDIR;
 		if ( ! wp_mkdir_p( $book_dir ) ) {
-			return self::fallback_book_path();
+			self::log_failure( 'Personalized book directory cannot be created.', $order );
+			return '';
 		}
 		self::protect_book_directory( $book_dir );
 
-		$safe_name = sanitize_file_name( 'Petualangan Karmila Gito - ' . $donor_name . '.pdf' );
-		$file_name = 'ykt-' . $order->get_id() . '-' . $safe_name;
-		$output = trailingslashit( $book_dir ) . $file_name;
-		$raw_output    = tempnam( sys_get_temp_dir(), 'ykt-book-' . absint( $order->get_id() ) . '-' );
-		$created_output = false;
-		if ( ! $raw_output ) {
-			return self::fallback_book_path();
+		$lock_path = trailingslashit( $book_dir ) . '.ykt-order-' . absint( $order->get_id() ) . '.lock';
+		$lock      = fopen( $lock_path, 'c' );
+		if ( ! is_resource( $lock ) || ! flock( $lock, LOCK_EX ) ) {
+			if ( is_resource( $lock ) ) {
+				fclose( $lock );
+			}
+			self::log_failure( 'Could not acquire the personalized book lock.', $order );
+			return '';
 		}
+
 		try {
-			if ( ! self::write_personalized_pdf( $normalized_source, $raw_output, $donor_name ) ) {
-				throw new RuntimeException( 'Could not create personalized campaign book.' );
+			$existing = self::existing_book_path( $order );
+			if ( $existing ) {
+				return $existing;
 			}
 
-			if ( rename( $raw_output, $output ) ) {
-				$created_output = true;
-			} elseif ( ! file_exists( $output ) || filesize( $output ) < 1000 ) {
-				throw new RuntimeException( 'Could not finalize campaign book.' );
+			$parser_source           = YKT_PLUGIN_DIR . 'assets/book/' . self::PARSER_SOURCE_FILE;
+			$normalized_source       = is_readable( $parser_source ) ? $parser_source : self::normalized_source( $source );
+			$temporary_parser_source = $normalized_source && $normalized_source !== $parser_source;
+			if ( ! $normalized_source ) {
+				self::log_failure( 'Parser-compatible PDF source is unavailable.', $order );
+				return '';
 			}
 
-			if ( ! file_exists( $output ) || filesize( $output ) < 1000 ) {
-				throw new RuntimeException( 'Personalized campaign book is empty.' );
-			}
-			if ( ! chmod( $output, 0644 ) ) {
-				throw new RuntimeException( 'Personalized campaign book is not readable by the web server.' );
+			$safe_name   = sanitize_file_name( 'Petualangan Karmila Gito - ' . $donor_name . '.pdf' );
+			$file_name   = 'ykt-' . $order->get_id() . '-' . $safe_name;
+			$output      = trailingslashit( $book_dir ) . $file_name;
+			$raw_output  = tempnam( sys_get_temp_dir(), 'ykt-book-' . absint( $order->get_id() ) . '-' );
+			$made_output = false;
+			if ( ! $raw_output ) {
+				self::log_failure( 'Could not create temporary personalized book output.', $order );
+				return '';
 			}
 
-			$relative_path = trailingslashit( self::BOOK_SUBDIR ) . $file_name;
-			$order->update_meta_data( self::BOOK_PATH_META, $relative_path );
-			$order->update_meta_data( self::BOOK_CREATED_META, current_time( 'mysql', true ) );
+			try {
+				if ( ! self::write_personalized_pdf( $normalized_source, $raw_output, $donor_name ) ) {
+					throw new RuntimeException( 'Could not create personalized campaign book.' );
+				}
+
+				if ( rename( $raw_output, $output ) ) {
+					$made_output = true;
+				} elseif ( ! file_exists( $output ) || filesize( $output ) < 1000 ) {
+					throw new RuntimeException( 'Could not finalize campaign book.' );
+				}
+
+				if ( ! file_exists( $output ) || filesize( $output ) < 1000 ) {
+					throw new RuntimeException( 'Personalized campaign book is empty.' );
+				}
+				if ( ! chmod( $output, 0644 ) ) {
+					throw new RuntimeException( 'Personalized campaign book is not readable by the web server.' );
+				}
+
+				$relative_path = trailingslashit( self::BOOK_SUBDIR ) . $file_name;
+				$order->update_meta_data( self::BOOK_PATH_META, $relative_path );
+				$order->update_meta_data( self::BOOK_CREATED_META, current_time( 'mysql', true ) );
+				$order->save();
+				wc_get_logger()->info( 'Personalized campaign book created: ' . $relative_path, array( 'source' => 'yiari-campaign-toolkit', 'order_id' => $order->get_id() ) );
+				return $output;
+			} catch ( Throwable $exception ) {
+				self::cleanup( $temporary_parser_source ? $normalized_source : '', $made_output ? $output : '', $raw_output );
+				self::log_failure( 'Unable to personalize campaign book PDF: ' . $exception->getMessage(), $order );
+				return '';
+			} finally {
+				self::cleanup( $temporary_parser_source ? $normalized_source : '', $raw_output );
+			}
+		} finally {
+			flock( $lock, LOCK_UN );
+			fclose( $lock );
+		}
+	}
+
+	/**
+	 * Prepare the personalized book before campaign emails are triggered.
+	 */
+	public static function prepare_book_on_paid( int $order_id, string $from, string $to, $order ): void {
+		unset( $from );
+		if ( 'paid' !== $to ) {
+			return;
+		}
+		$order = $order instanceof WC_Order ? $order : wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && class_exists( 'YKT_Checkout' ) && YKT_Checkout::order_has_campaign_package( $order ) ) {
+			self::create_for_order( $order );
+		}
+	}
+
+	/**
+	 * Queue an email until its required personalized book exists.
+	 */
+	public static function queue_email_retry( int $order_id, string $email_id ): void {
+		if ( $order_id < 1 || '' === $email_id ) {
+			return;
+		}
+		$args = array( $order_id, $email_id );
+		if ( ! wp_next_scheduled( self::EMAIL_RETRY_HOOK, $args ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::EMAIL_RETRY_HOOK, $args );
+		}
+	}
+
+	/**
+	 * Retry a blocked campaign email after book generation succeeds.
+	 */
+	public static function retry_campaign_email( int $order_id, string $email_id ): void {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order || ! class_exists( 'YKT_Checkout' ) || ! YKT_Checkout::order_has_campaign_package( $order ) ) {
+			return;
+		}
+
+		$book = self::create_for_order( $order );
+		if ( '' === $book || ! file_exists( $book ) ) {
+			$key   = '_ykt_book_email_retry_' . sanitize_key( $email_id );
+			$count = absint( $order->get_meta( $key, true ) ) + 1;
+			$order->update_meta_data( $key, $count );
 			$order->save();
-			self::cleanup( $temporary_parser_source ? $normalized_source : '', $raw_output );
-			wc_get_logger()->info( 'Personalized campaign book created: ' . $relative_path, array( 'source' => 'yiari-campaign-toolkit' ) );
-			return $output;
-		} catch ( Throwable $exception ) {
-			self::cleanup( $temporary_parser_source ? $normalized_source : '', $created_output ? $output : '', $raw_output );
-			wc_get_logger()->error(
-				'Unable to personalize campaign book PDF: ' . $exception->getMessage(),
-				array( 'source' => 'ykt-book-personalizer', 'order_id' => $order->get_id() )
-			);
-			return self::fallback_book_path();
+			if ( $count < self::MAX_EMAIL_RETRIES ) {
+				self::queue_email_retry( $order_id, $email_id );
+			} else {
+				$order->update_meta_data( self::FALLBACK_META_PREFIX . sanitize_key( $email_id ), current_time( 'mysql', true ) );
+				$order->save();
+				wc_get_logger()->error( 'Personalized book retries exhausted; sending the campaign email with the original book as last-resort fallback.', array( 'source' => 'ykt-book-personalizer', 'order_id' => $order_id, 'email_id' => $email_id ) );
+				self::trigger_email( $order_id, $order, $email_id );
+			}
+			return;
+		}
+
+		$key = '_ykt_book_email_retry_' . sanitize_key( $email_id );
+		$order->delete_meta_data( $key );
+		$order->save();
+		$map = array(
+			'ykt_campaign_paid' => 'YKT_Email_Campaign_Paid',
+			'ykt_campaign_shipped' => 'YKT_Email_Campaign_Shipped',
+			'ykt_campaign_delivered' => 'YKT_Email_Campaign_Delivered',
+			'ykt_campaign_impact' => 'YKT_Email_Campaign_Impact',
+		);
+		self::trigger_email( $order_id, $order, $email_id, $map[ $email_id ] ?? $email_id );
+	}
+
+	/**
+	 * Determine whether an email may use the original book after retries fail.
+	 */
+	public static function fallback_allowed( WC_Order $order, string $email_id ): bool {
+		return '' !== (string) $order->get_meta( self::FALLBACK_META_PREFIX . sanitize_key( $email_id ), true );
+	}
+
+	/**
+	 * Return the original book for the final delivery fallback.
+	 */
+	public static function fallback_book_path(): string {
+		$path = YKT_PLUGIN_DIR . 'assets/book/' . self::SOURCE_FILE;
+		return is_readable( $path ) ? $path : '';
+	}
+
+	private static function trigger_email( int $order_id, WC_Order $order, string $email_id, ?string $email_key = null ): void {
+		$emails = WC()->mailer()->get_emails();
+		$email  = $emails[ $email_key ?? $email_id ] ?? null;
+		if ( $email instanceof WC_Email && method_exists( $email, 'trigger' ) ) {
+			$email->trigger( $order_id, $order );
 		}
 	}
 
@@ -280,11 +399,12 @@ class YKT_Book_Personalizer {
 	}
 
 	/**
-	 * Return no attachment when generation cannot run.
+	 * Log a generation failure without exposing the source PDF as an attachment.
 	 */
-	private static function fallback_book_path(): string {
-		$path = YKT_PLUGIN_DIR . 'assets/book/' . self::SOURCE_FILE;
-		return file_exists( $path ) ? $path : '';
+	private static function log_failure( string $message, WC_Order $order ): void {
+		if ( function_exists( 'wc_get_logger' ) ) {
+			wc_get_logger()->error( $message, array( 'source' => 'ykt-book-personalizer', 'order_id' => $order->get_id() ) );
+		}
 	}
 
 	/**

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Hardened campaign book delivery with per-order locking, fail-closed personalized attachments, pre-send generation, and queued email retries so retries happen first and the original source PDF is used only as a logged last-resort fallback.
+
 - Made concurrent email-triggered book generation safe so one process cannot delete another process’s completed personalized PDF.
 
 - Added a committed parser-compatible helper PDF so donor personalization works in web PHP environments where `proc_open` is disabled, without final PDF optimization.

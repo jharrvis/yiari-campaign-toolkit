@@ -39,6 +39,9 @@ class YKT_Emails {
 		add_action( 'woocommerce_email_sent', array( $this, 'clear_active_customer_email' ), 20, 3 );
 		add_filter( 'woocommerce_email_from_address', array( $this, 'support_email_address' ) );
 		add_filter( 'woocommerce_email_from_name', array( $this, 'support_email_name' ), 20, 2 );
+		add_filter( 'woocommerce_email_enabled_customer_processing_order', array( $this, 'allow_campaign_customer_email' ), 20, 2 );
+		add_filter( 'woocommerce_email_enabled_customer_on_hold_order', array( $this, 'allow_campaign_customer_email' ), 20, 2 );
+		add_filter( 'woocommerce_email_enabled_customer_completed_order', array( $this, 'allow_campaign_customer_email' ), 20, 2 );
 		add_filter( 'woocommerce_email_footer_text', array( $this, 'replace_footer_contact_email' ) );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'trigger_for_status' ), 50, 4 );
 		$this->register_loaded_mailer();
@@ -210,6 +213,28 @@ class YKT_Emails {
 	 * @param mixed              $object Email object, usually a WC_Order.
 	 * @return array<int, string>
 	 */
+	/**
+	 * Hold built-in campaign emails until the personalized book is ready.
+	 */
+	public function allow_campaign_customer_email( bool $enabled, $order ): bool {
+		if ( ! $enabled || ! $order instanceof WC_Order || ! class_exists( 'YKT_Checkout' ) || ! YKT_Checkout::order_has_campaign_package( $order ) ) {
+			return $enabled;
+		}
+
+		$book = YKT_Book_Personalizer::create_for_order( $order );
+		if ( $book && file_exists( $book ) ) {
+			return true;
+		}
+
+		$email_id = current_filter();
+		$email_id = str_replace( 'woocommerce_email_enabled_', '', $email_id );
+		if ( YKT_Book_Personalizer::fallback_allowed( $order, $email_id ) ) {
+			return true;
+		}
+		YKT_Book_Personalizer::queue_email_retry( $order->get_id(), $email_id );
+		return false;
+	}
+
 	public function personalize_campaign_book_attachment( array $attachments, string $email_id, $object ): array {
 		$allowed_email_ids = array( 'ykt_campaign_paid', 'customer_processing_order', 'customer_on_hold_order', 'customer_completed_order', 'customer_invoice' );
 		if ( ! in_array( $email_id, $allowed_email_ids, true ) || ! $object instanceof WC_Order ) {
@@ -219,7 +244,7 @@ class YKT_Emails {
 			return $attachments;
 		}
 
-		$generic_book = wp_normalize_path( YKT_PLUGIN_DIR . 'assets/book/FIXED PDF Buku Karmila Gito + Page Greetings.pdf' );
+		$generic_book = wp_normalize_path( YKT_Book_Personalizer::fallback_book_path() );
 
 		$has_personalized_book = false;
 		foreach ( $attachments as $attachment ) {
@@ -231,13 +256,15 @@ class YKT_Emails {
 
 		if ( ! $has_personalized_book ) {
 			$personalized_book = YKT_Book_Personalizer::create_for_order( $object );
-			if ( $personalized_book && file_exists( $personalized_book ) && wp_normalize_path( $personalized_book ) !== $generic_book ) {
-				$attachments = array_values( array_filter( $attachments, static function ( $attachment ) use ( $generic_book ): bool {
-					return wp_normalize_path( (string) $attachment ) !== $generic_book;
-				} ) );
+			$attachments = array_values( array_filter( $attachments, static function ( $attachment ) use ( $generic_book ): bool {
+				return wp_normalize_path( (string) $attachment ) !== $generic_book;
+			} ) );
+			if ( $personalized_book && file_exists( $personalized_book ) ) {
 				$attachments[] = $personalized_book;
-			} elseif ( $personalized_book && file_exists( $personalized_book ) && ! in_array( $personalized_book, $attachments, true ) ) {
-				$attachments[] = $personalized_book;
+			} elseif ( YKT_Book_Personalizer::fallback_allowed( $object, $email_id ) && $generic_book && file_exists( $generic_book ) ) {
+				$attachments[] = $generic_book;
+			} else {
+				YKT_Book_Personalizer::queue_email_retry( $object->get_id(), $email_id );
 			}
 		}
 
@@ -422,6 +449,15 @@ abstract class YKT_Email_Campaign_Base extends WC_Email {
 			}
 		}
 
+		if ( $order instanceof WC_Order && class_exists( 'YKT_Checkout' ) && YKT_Checkout::order_has_campaign_package( $order ) ) {
+			$book = YKT_Book_Personalizer::create_for_order( $order );
+			if ( ( ! $book || ! file_exists( $book ) ) && ! YKT_Book_Personalizer::fallback_allowed( $order, $this->id ) ) {
+				YKT_Book_Personalizer::queue_email_retry( $order_id, $this->id );
+				$this->restore_locale();
+				return;
+			}
+		}
+
 		$attachments = $this->get_attachments();
 		if ( $this->is_enabled() && $this->get_recipient() ) {
 			$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $attachments );
@@ -537,6 +573,11 @@ class YKT_Email_Campaign_Paid extends YKT_Email_Campaign_Base {
 				$personalized_book = YKT_Book_Personalizer::create_for_order( $this->object );
 				if ( $personalized_book && file_exists( $personalized_book ) && ! in_array( $personalized_book, $attachments, true ) ) {
 					$attachments[] = $personalized_book;
+				} elseif ( YKT_Book_Personalizer::fallback_allowed( $this->object, $this->id ) ) {
+					$fallback_book = YKT_Book_Personalizer::fallback_book_path();
+					if ( $fallback_book && ! in_array( $fallback_book, $attachments, true ) ) {
+						$attachments[] = $fallback_book;
+					}
 				}
 			}
 		}
