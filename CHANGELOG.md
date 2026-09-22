@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a committed parser-compatible helper PDF so donor personalization works in web PHP environments where `proc_open` is disabled, without final PDF optimization.
+
 - Set the campaign email sender name to `Donasi Buku YIARI` without changing non-campaign WooCommerce email sender names.
 
 - Switched donor book personalization to the fixed PDF source, preserved the `Hai,` donor greeting while removing the background block and final Ghostscript compression, and added hourly cleanup for personalized PDFs older than one day. A temporary parser-compatible copy is created only when generating the donor PDF.

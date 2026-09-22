@@ -25,7 +25,8 @@ class YKT_Book_Personalizer {
 	/**
 	 * Source book filename uploaded by the campaign team.
 	 */
-	private const SOURCE_FILE = 'FIXED PDF Buku Karmila Gito + Page Greetings.pdf';
+	private const SOURCE_FILE        = 'FIXED PDF Buku Karmila Gito + Page Greetings.pdf';
+	private const PARSER_SOURCE_FILE = 'Petualangan Karmila Gito - Normalized.pdf';
 
 	/**
 	 * Register the cleanup cron independently from WooCommerce.
@@ -92,7 +93,9 @@ class YKT_Book_Personalizer {
 			return self::fallback_book_path();
 		}
 
-		$normalized_source = self::normalized_source( $source );
+		$parser_source           = YKT_PLUGIN_DIR . 'assets/book/' . self::PARSER_SOURCE_FILE;
+		$normalized_source       = is_readable( $parser_source ) ? $parser_source : self::normalized_source( $source );
+		$temporary_parser_source = $normalized_source && $normalized_source !== $parser_source;
 		if ( ! $normalized_source ) {
 			return self::fallback_book_path();
 		}
@@ -143,11 +146,11 @@ class YKT_Book_Personalizer {
 			$order->update_meta_data( self::BOOK_PATH_META, $relative_path );
 			$order->update_meta_data( self::BOOK_CREATED_META, current_time( 'mysql', true ) );
 			$order->save();
-			self::cleanup( $normalized_source, $raw_output );
+			self::cleanup( $temporary_parser_source ? $normalized_source : '', $raw_output );
 			wc_get_logger()->info( 'Personalized campaign book created: ' . $relative_path, array( 'source' => 'yiari-campaign-toolkit' ) );
 			return $output;
 		} catch ( Throwable $exception ) {
-			self::cleanup( $normalized_source, $output, $raw_output );
+			self::cleanup( $temporary_parser_source ? $normalized_source : '', $output, $raw_output );
 			wc_get_logger()->error(
 				'Unable to personalize campaign book PDF: ' . $exception->getMessage(),
 				array( 'source' => 'ykt-book-personalizer', 'order_id' => $order->get_id() )
