@@ -122,7 +122,8 @@ class YKT_Book_Personalizer {
 		$safe_name = sanitize_file_name( 'Petualangan Karmila Gito - ' . $donor_name . '.pdf' );
 		$file_name = 'ykt-' . $order->get_id() . '-' . $safe_name;
 		$output = trailingslashit( $book_dir ) . $file_name;
-		$raw_output = tempnam( sys_get_temp_dir(), 'ykt-book-' . absint( $order->get_id() ) . '-' );
+		$raw_output    = tempnam( sys_get_temp_dir(), 'ykt-book-' . absint( $order->get_id() ) . '-' );
+		$created_output = false;
 		if ( ! $raw_output ) {
 			return self::fallback_book_path();
 		}
@@ -131,7 +132,9 @@ class YKT_Book_Personalizer {
 				throw new RuntimeException( 'Could not create personalized campaign book.' );
 			}
 
-			if ( ! rename( $raw_output, $output ) ) {
+			if ( rename( $raw_output, $output ) ) {
+				$created_output = true;
+			} elseif ( ! file_exists( $output ) || filesize( $output ) < 1000 ) {
 				throw new RuntimeException( 'Could not finalize campaign book.' );
 			}
 
@@ -150,7 +153,7 @@ class YKT_Book_Personalizer {
 			wc_get_logger()->info( 'Personalized campaign book created: ' . $relative_path, array( 'source' => 'yiari-campaign-toolkit' ) );
 			return $output;
 		} catch ( Throwable $exception ) {
-			self::cleanup( $temporary_parser_source ? $normalized_source : '', $output, $raw_output );
+			self::cleanup( $temporary_parser_source ? $normalized_source : '', $created_output ? $output : '', $raw_output );
 			wc_get_logger()->error(
 				'Unable to personalize campaign book PDF: ' . $exception->getMessage(),
 				array( 'source' => 'ykt-book-personalizer', 'order_id' => $order->get_id() )

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Made concurrent email-triggered book generation safe so one process cannot delete another process’s completed personalized PDF.
+
 - Added a committed parser-compatible helper PDF so donor personalization works in web PHP environments where `proc_open` is disabled, without final PDF optimization.
 
 - Set the campaign email sender name to `Donasi Buku YIARI` without changing non-campaign WooCommerce email sender names.
